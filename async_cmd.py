@@ -42,12 +42,37 @@ listings of documented functions, miscellaneous topics, and undocumented
 functions respectively.
 """
 
+from functools import wraps
 import inspect
 import string
 import sys
-from typing import Any, Iterable, Sequence, TextIO
+from typing import Any, Callable, Coroutine, Final, Sequence, TextIO
+
+from typing_utilities import CmdMethod
 
 __all__ = ("AsyncCmd",)
+
+def command(arg: str | Callable[..., Any] | None = None):
+    def outer_decorated(method: Callable[..., Any]):
+        @wraps(method)
+        def inner_decorated(*args, **kwargs):
+            return method(*args, **kwargs)
+        
+        setattr(inner_decorated, "__commandname__", arg if isinstance(arg, str) else method.__name__)
+        return inner_decorated
+    
+    return outer_decorated(arg) if callable(arg) else outer_decorated
+
+def async_command(arg: str | Callable[..., Coroutine[Any, Any, Any]] | None = None):
+    def outer_decorated(method: Callable[..., Any]):
+        @wraps(method)
+        async def inner_decorated(*args, **kwargs):
+            return await method(*args, **kwargs)
+        
+        setattr(inner_decorated, "__commandname__", arg if isinstance(arg, str) else method.__name__)
+        return inner_decorated
+    
+    return outer_decorated(arg) if callable(arg) else outer_decorated
 
 class AsyncCmd:
     """A simple framework for writing line-oriented command interpreters.
@@ -70,7 +95,18 @@ class AsyncCmd:
 
     __slots__ = ('stdin', 'stdout', 'completekey', 'cmdqueue',
                  'old_completer', 'lastcmd', 'prompt',
-                 'identchars', 'intro')
+                 'identchars', 'intro',
+                 '_method_mapping')
+
+    def _update_mapping(self, overwrite: bool) -> None:
+        if overwrite:
+            self._method_mapping.clear()
+        for name, method in inspect.getmembers(self, inspect.ismethod):
+            cmdname = getattr(method, "__commandname__", None)
+            if cmdname is not None: # Method decorated with @command or @async_command
+                self._method_mapping[cmdname] = method
+            if name.startswith("do_"):  # Legacy method, defined as with do_*()
+                self._method_mapping[name[2:]] = method
 
     def __init__(self,
                  completekey: str ='tab',
@@ -95,6 +131,10 @@ class AsyncCmd:
         self.prompt: str = prompt or f"{self.__class__.__name__}> "
         self.identchars: str = string.ascii_letters + string.digits + '_'
         self.intro: str = intro or "Asynchronous Command Line Interface"
+
+        # Define a map of AsyncCmd methods decorated by @command and @async_command
+        self._method_mapping: Final[dict[str, CmdMethod]] = {}
+        self._update_mapping(overwrite=False)
 
     def cmdloop(self):
         """
@@ -200,7 +240,7 @@ class AsyncCmd:
         cmd, arg = line[:i], line[i:].strip()
         return cmd, arg, line
 
-    def onecmd(self, line: str):
+    async def onecmd(self, line: str):
         """
         Interpret the argument as though it had been typed in response to the prompt.
 
@@ -221,10 +261,12 @@ class AsyncCmd:
         if cmd == '':
             return self.default(line)
         else:
-            func = getattr(self, 'do_' + cmd, None)
-            if func is None:
+            method: CmdMethod|None = self._method_mapping.get(cmd)
+            if not method:
                 return self.default(line)
-            return func(arg)
+            if inspect.iscoroutinefunction(method):
+                return await method(arg)
+            return method(arg)
 
     def emptyline(self):
         """
