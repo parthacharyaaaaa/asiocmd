@@ -79,7 +79,8 @@ class AsyncCmd:
                  stdin: TextIO|Any|None = None,
                  stdout: TextIO|Any|None = None,
                  intro: str|None = None):
-        """Instantiate a line-oriented interpreter framework.
+        """
+        Instantiate a line-oriented interpreter framework.
 
         The optional argument 'completekey' is the readline name of a
         completion key; it defaults to the Tab key. If completekey is
@@ -97,10 +98,10 @@ class AsyncCmd:
         self.intro: str = intro or "Asynchronous Command Line Interface"
 
     def cmdloop(self, intro=None):
-        """Repeatedly issue a prompt, accept input, parse an initial prefix
+        """
+        Repeatedly issue a prompt, accept input, parse an initial prefix
         off the received input, and dispatch to action methods, passing them
         the remainder of the line as argument.
-
         """
 
         self.preloop()
@@ -157,29 +158,33 @@ class AsyncCmd:
 
 
     def precmd(self, line):
-        """Hook method executed just before the command line is
+        """
+        Hook method executed just before the command line is
         interpreted, but after the input prompt is generated and issued.
-
         """
         return line
 
     def postcmd(self, stop, line):
-        """Hook method executed just after a command dispatch is finished."""
+        """
+        Hook method executed just after a command dispatch is finished.
+        """
         return stop
 
     def preloop(self):
-        """Hook method executed once when the cmdloop() method is called."""
+        """
+        Hook method executed once when the cmdloop() method is called.
+        """
         pass
 
     def postloop(self):
-        """Hook method executed once when the cmdloop() method is about to
-        return.
-
+        """
+        Hook method executed once when the cmdloop() method is about to return.
         """
         pass
 
     def parseline(self, line):
-        """Parse the line into a command name and a string containing
+        """
+        Parse the line into a command name and a string containing
         the arguments.  Returns a tuple containing (command, args, line).
         'command' and 'args' may be None if the line couldn't be parsed.
         """
@@ -199,8 +204,8 @@ class AsyncCmd:
         return cmd, arg, line
 
     def onecmd(self, line):
-        """Interpret the argument as though it had been typed in response
-        to the prompt.
+        """
+        Interpret the argument as though it had been typed in response to the prompt.
 
         This may be overridden, but should not normally need to be;
         see the precmd() and postcmd() methods for useful execution hooks.
@@ -225,11 +230,11 @@ class AsyncCmd:
             return func(arg)
 
     def emptyline(self):
-        """Called when an empty line is entered in response to the prompt.
+        """
+        Called when an empty line is entered in response to the prompt.
 
         If this method is not overridden, it repeats the last nonempty
         command entered.
-
         """
         if self.lastcmd:
             return self.onecmd(self.lastcmd)
@@ -257,7 +262,8 @@ class AsyncCmd:
         return [a[3:] for a in self.get_names() if a.startswith(dotext)]
 
     def complete(self, text, state):
-        """Return the next possible completion for 'text'.
+        """
+        Return the next possible completion for 'text'.
 
         If a command has not been entered, then complete against command list.
         Otherwise try to call complete_<command> to get list of completions.
@@ -298,7 +304,9 @@ class AsyncCmd:
         return list(commands | topics)
 
     def do_help(self, arg):
-        'List available commands with "help" or detailed help with "help cmd".'
+        """
+        List available commands with "help" or detailed help with "help cmd".
+        """
         if arg:
             # XXX check arg syntax
             try:
@@ -353,7 +361,8 @@ class AsyncCmd:
             self.stdout.write("\n")
 
     def columnize(self, list, displaywidth=80):
-        """Display a list of strings as a compact set of columns.
+        """
+        Display a list of strings as a compact set of columns.
 
         Each column is only as wide as necessary.
         Columns are separated by two spaces (one was not legible enough).
