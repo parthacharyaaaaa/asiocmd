@@ -367,10 +367,10 @@ class AsyncCmd:
             else:
                 undocumented.append(method)
 
-        self.print_topics(self.doc_header, list(self._helper_mapping.keys()), 15, 80)
-        self.print_topics(self.undoc_header, list(self._method_mapping.keys() - self._helper_mapping.keys()), 15, 80)
+        self.print_topics(self.doc_header, list(self._helper_mapping.keys()), 80)
+        self.print_topics(self.undoc_header, list(self._method_mapping.keys() - self._helper_mapping.keys()), 80)
 
-    def print_topics(self, header: str, cmds: Sequence[str], cmdlen, maxcol):
+    def print_topics(self, header: str, cmds: Sequence[str], maxcol):
         if cmds:
             self.stdout.write(header)
             if self.ruler:
