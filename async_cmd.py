@@ -245,12 +245,11 @@ class AsyncCmd:
                 line = 'shell ' + line[1:]
             else:
                 return None, None, line
-        i, n = 0, len(line)
-        for i in line:
-            if i not in self.identchars:
+
+        for i in range(len(line)):
+            if line[i] not in self.identchars:
                 return line[:i], line[i:], line
-        
-        raise ValueError("Unparsable command: ", line)
+        return line, "", line
     
     async def onecmd(self, line: str):
         """
