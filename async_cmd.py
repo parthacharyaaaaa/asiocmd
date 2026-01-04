@@ -45,30 +45,23 @@ functions respectively.
 import inspect
 import string
 import sys
-import readline
+from typing import Any, TextIO
 
-__all__ = ("Cmd",)
+__all__ = ("AsyncCmd",)
 
-PROMPT = '(Cmd) '
-IDENTCHARS = string.ascii_letters + string.digits + '_'
-
-class Cmd:
+class AsyncCmd:
     """A simple framework for writing line-oriented command interpreters.
 
     These are often useful for test harnesses, administrative tools, and
     prototypes that will later be wrapped in a more sophisticated interface.
 
-    A Cmd instance or subclass instance is a line-oriented interpreter
-    framework.  There is no good reason to instantiate Cmd itself; rather,
+    A AsyncCmd instance or subclass instance is a line-oriented interpreter
+    framework.  There is no good reason to instantiate AsyncCmd itself; rather,
     it's useful as a superclass of an interpreter class you define yourself
-    in order to inherit Cmd's methods and encapsulate action methods.
+    in order to inherit AsyncCmd's methods and encapsulate action methods.
 
     """
-    prompt = PROMPT
-    identchars = IDENTCHARS
     ruler = '='
-    lastcmd = ''
-    intro = None
     doc_leader = ""
     doc_header = "Documented commands (type help <topic>):"
     misc_header = "Miscellaneous help topics:"
@@ -76,7 +69,16 @@ class Cmd:
     nohelp = "*** No help on %s"
     use_rawinput = 1
 
-    def __init__(self, completekey='tab', stdin=None, stdout=None):
+    __slots__ = ('stdin', 'stdout', 'completekey', 'cmdqueue',
+                 'old_completer', 'lastcmd', 'prompt',
+                 'identchars', 'intro')
+
+    def __init__(self,
+                 completekey: str ='tab',
+                 prompt: str|None = None,
+                 stdin: TextIO|Any|None = None,
+                 stdout: TextIO|Any|None = None,
+                 intro: str|None = None):
         """Instantiate a line-oriented interpreter framework.
 
         The optional argument 'completekey' is the readline name of a
@@ -85,18 +87,14 @@ class Cmd:
         is done automatically. The optional arguments stdin and stdout
         specify alternate input and output file objects; if not specified,
         sys.stdin and sys.stdout are used.
-
         """
-        if stdin is not None:
-            self.stdin = stdin
-        else:
-            self.stdin = sys.stdin
-        if stdout is not None:
-            self.stdout = stdout
-        else:
-            self.stdout = sys.stdout
-        self.cmdqueue = []
-        self.completekey = completekey
+        self.stdin: Any = stdin or sys.stdin
+        self.stdout: Any = stdout or sys.stdout
+        self.cmdqueue: list[str] = []
+        self.completekey: str = completekey
+        self.prompt: str = prompt or f"{self.__class__.__name__}> "
+        self.identchars: str = string.ascii_letters + string.digits + '_'
+        self.intro: str = intro or "Asynchronous Command Line Interface"
 
     def cmdloop(self, intro=None):
         """Repeatedly issue a prompt, accept input, parse an initial prefix
@@ -108,6 +106,7 @@ class Cmd:
         self.preloop()
         if self.use_rawinput and self.completekey:
             try:
+                import readline
                 self.old_completer = readline.get_completer()
                 readline.set_completer(self.complete)
                 if readline.backend == "editline":
