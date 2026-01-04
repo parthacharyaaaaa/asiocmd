@@ -99,7 +99,7 @@ class AsyncCmd:
             elif name.startswith("help_"):  # Legacy method for help, defined as help_*()
                 self._helper_mapping[name[5:]] = method
 
-        if difference := (set(self._helper_mapping.keys()) - set(self._method_mapping.keys())):
+        if difference := (self._helper_mapping.keys() - self._method_mapping.keys()):
             raise ValueError(f"{', '.join(difference)} helpers are defined for non-existent methods")
 
     def __init__(self,
