@@ -155,7 +155,7 @@ class AsyncCmd:
         self._method_mapping: Final[dict[str, CmdMethod]] = {}
         self._update_mapping(overwrite=False)
 
-    def cmdloop(self):
+    async def cmdloop(self):
         """
         Repeatedly issue a prompt, accept input, parse an initial prefix
         off the received input, and dispatch to action methods, passing them
@@ -196,7 +196,7 @@ class AsyncCmd:
                     else:
                         line = line.rstrip('\r\n')
             line = self.precmd(line)
-            stop = self.onecmd(line)
+            stop = await self.onecmd(line)
             stop = self.postcmd(stop, line)
 
         self.postloop()
