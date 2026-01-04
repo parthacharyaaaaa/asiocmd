@@ -66,7 +66,6 @@ class AsyncCmd:
     doc_header = "Documented commands (type help <topic>):"
     misc_header = "Miscellaneous help topics:"
     undoc_header = "Undocumented commands:"
-    nohelp = "*** No help on %s"
     use_rawinput = 1
 
     __slots__ = ('stdin', 'stdout', 'completekey', 'cmdqueue',
@@ -244,7 +243,7 @@ class AsyncCmd:
         returns.
 
         """
-        self.stdout.write('*** Unknown syntax: %s\n'%line)
+        self.stdout.write(f"Unknown syntax: {line}\n")
 
     def completedefault(self, *ignored):
         """Method called to complete an input line when no command-specific
@@ -314,11 +313,11 @@ class AsyncCmd:
                     doc=getattr(self, 'do_' + arg).__doc__
                     doc = inspect.cleandoc(doc)
                     if doc:
-                        self.stdout.write("%s\n"%str(doc))
+                        self.stdout.write(doc)
                         return
                 except AttributeError:
                     pass
-                self.stdout.write("%s\n"%str(self.nohelp % (arg,)))
+                self.stdout.write(f"No help available for: {arg}")
                 return
             func()
         else:
@@ -345,16 +344,16 @@ class AsyncCmd:
                         cmds_doc.append(cmd)
                     else:
                         cmds_undoc.append(cmd)
-            self.stdout.write("%s\n"%str(self.doc_leader))
+            self.stdout.write(self.doc_leader)
             self.print_topics(self.doc_header,   cmds_doc,   15,80)
             self.print_topics(self.misc_header,  sorted(topics),15,80)
             self.print_topics(self.undoc_header, cmds_undoc, 15,80)
 
-    def print_topics(self, header, cmds, cmdlen, maxcol):
+    def print_topics(self, header: str, cmds, cmdlen, maxcol):
         if cmds:
-            self.stdout.write("%s\n"%str(header))
+            self.stdout.write(header)
             if self.ruler:
-                self.stdout.write("%s\n"%str(self.ruler * len(header)))
+                self.stdout.write(self.ruler * len(header))
             self.columnize(cmds, maxcol-1)
             self.stdout.write("\n")
 
