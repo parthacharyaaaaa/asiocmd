@@ -106,7 +106,7 @@ class AsyncCmd:
             if cmdname is not None: # Method decorated with @command or @async_command
                 self._method_mapping[cmdname] = method
             if name.startswith("do_"):  # Legacy method, defined as with do_*()
-                self._method_mapping[name[2:]] = method
+                self._method_mapping[name[3:]] = method
 
     def __init__(self,
                  completekey: str ='tab',
@@ -352,7 +352,7 @@ class AsyncCmd:
                      if a.startswith('help_' + args[0]))
         return list(commands | topics)
 
-    def do_help(self, arg):
+    def do_help(self, arg: str) -> None:
         """
         List available commands with "help" or detailed help with "help cmd".
         """
@@ -362,7 +362,7 @@ class AsyncCmd:
                 func = getattr(self, 'help_' + arg)
             except AttributeError:
                 try:
-                    doc=getattr(self, 'do_' + arg).__doc__
+                    doc = getattr(self, 'do_' + arg).__doc__
                     doc = inspect.cleandoc(doc)
                     if doc:
                         self.stdout.write(doc)
@@ -372,33 +372,19 @@ class AsyncCmd:
                 self.stdout.write(f"No help available for: {arg}")
                 return
             func()
-        else:
-            names = self.get_names()
-            cmds_doc = []
-            cmds_undoc = []
-            topics = set()
-            for name in names:
-                if name[:5] == 'help_':
-                    topics.add(name[5:])
-            names.sort()
-            # There can be duplicates if routines overridden
-            prevname = ''
-            for name in names:
-                if name[:3] == 'do_':
-                    if name == prevname:
-                        continue
-                    prevname = name
-                    cmd=name[3:]
-                    if cmd in topics:
-                        cmds_doc.append(cmd)
-                        topics.remove(cmd)
-                    elif getattr(self, name).__doc__:
-                        cmds_doc.append(cmd)
-                    else:
-                        cmds_undoc.append(cmd)
-            self.print_topics(self.doc_header,   cmds_doc,   15,80)
-            self.print_topics(self.misc_header,  sorted(topics),15,80)
-            self.print_topics(self.undoc_header, cmds_undoc, 15,80)
+            return
+        
+        # Display help (if available) for all registered commands
+        documented, undocumented = [], []
+        for command, method in self._method_mapping.items():
+            if doc:=getattr(method, "__doc__", None):
+                documented.append(command)
+            # TODO: Add support for dedicated @help decorators and help_* methods
+            else:
+                undocumented.append(method)
+
+        self.print_topics(self.doc_header, documented, 15, 80)
+        self.print_topics(self.misc_header, undocumented,15, 80)
 
     def print_topics(self, header: str, cmds, cmdlen, maxcol):
         if cmds:
