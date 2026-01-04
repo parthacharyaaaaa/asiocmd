@@ -73,17 +73,34 @@ class AsyncCmd:
                  'old_completer', 'lastcmd', 'prompt',
                  'identchars', 'intro', 'ruler',
                  'doc_header', 'misc_header', 'undoc_header',
-                 'use_rawinput', '_method_mapping')
+                 'use_rawinput',
+                 '_method_mapping', '_helper_mapping')
 
     def _update_mapping(self, overwrite: bool) -> None:
         if overwrite:
             self._method_mapping.clear()
+            self._helper_mapping.clear()
+
         for name, method in inspect.getmembers(self, inspect.ismethod):
+            # NOTE: If a command has a docstring AND a dedicated helper method, then the latter will be given priority
             cmdname = getattr(method, "__commandname__", None)
             if cmdname is not None: # Method decorated with @command or @async_command
                 self._method_mapping[cmdname] = method
-            if name.startswith("do_"):  # Legacy method, defined as with do_*()
+                if docs:=inspect.cleandoc(method.__doc__ or ''):
+                    self._helper_mapping.setdefault(cmdname, lambda d=docs : docs)
+            
+            elif name.startswith("do_"):  # Legacy method, defined as do_*()
                 self._method_mapping[name[3:]] = method
+                if docs:=inspect.cleandoc(method.__doc__ or ''):
+                    self._helper_mapping.setdefault(name[3:], lambda d=docs : docs)
+            
+            elif helpname := getattr(method, "__helpdata__", None): # Method decorated with @command_helper or @async_command_helper
+                self._helper_mapping[helpname] = method
+            elif name.startswith("help_"):  # Legacy method for help, defined as help_*()
+                self._helper_mapping[name[5:]] = method
+
+        if difference := (set(self._helper_mapping.keys()) - set(self._method_mapping.keys())):
+            raise ValueError(f"{', '.join(difference)} helpers are defined for non-existent methods")
 
     def __init__(self,
                  completekey: str ='tab',
@@ -130,6 +147,7 @@ class AsyncCmd:
 
         # Map of AsyncCmd methods decorated by @command and @async_command
         self._method_mapping: Final[dict[str, CmdMethod]] = {}
+        self._helper_mapping: Final[dict[str, CmdMethod]] = {}
         self._update_mapping(overwrite=False)
 
     async def cmdloop(self):
