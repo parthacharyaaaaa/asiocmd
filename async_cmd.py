@@ -47,10 +47,16 @@ import inspect
 import string
 import sys
 from typing import Any, Callable, Coroutine, Final, Sequence, TextIO
-
+import readline
 from typing_utilities import CmdMethod
 
 __all__ = ("AsyncCmd",)
+
+READLINE_AVAILABLE: bool = True
+try:
+    import readline
+except ImportError:
+    READLINE_AVAILABLE = False
 
 def command(arg: str | Callable[..., Any] | None = None):
     def outer_decorated(method: Callable[..., Any]):
@@ -84,19 +90,13 @@ class AsyncCmd:
     framework.  There is no good reason to instantiate AsyncCmd itself; rather,
     it's useful as a superclass of an interpreter class you define yourself
     in order to inherit AsyncCmd's methods and encapsulate action methods.
-
     """
-    ruler = '='
-    doc_leader = ""
-    doc_header = "Documented commands (type help <topic>):"
-    misc_header = "Miscellaneous help topics:"
-    undoc_header = "Undocumented commands:"
-    use_rawinput = 1
 
     __slots__ = ('stdin', 'stdout', 'completekey', 'cmdqueue',
                  'old_completer', 'lastcmd', 'prompt',
-                 'identchars', 'intro',
-                 '_method_mapping')
+                 'identchars', 'intro', 'ruler',
+                 'doc_header', 'misc_header', 'undoc_header',
+                 'use_rawinput', '_method_mapping')
 
     def _update_mapping(self, overwrite: bool) -> None:
         if overwrite:
@@ -113,7 +113,12 @@ class AsyncCmd:
                  prompt: str|None = None,
                  stdin: TextIO|Any|None = None,
                  stdout: TextIO|Any|None = None,
-                 intro: str|None = None):
+                 use_raw_input: bool = True,
+                 intro: str|None = None,
+                 ruler: str = "=",
+                 doc_header: str = "Documented commands (type help <topic>):",
+                 misc_header: str = "Miscellaneous help topics:",
+                 undoc_header: str = "Undocumented commands:"):
         """
         Instantiate a line-oriented interpreter framework.
 
@@ -124,15 +129,29 @@ class AsyncCmd:
         specify alternate input and output file objects; if not specified,
         sys.stdin and sys.stdout are used.
         """
+        
+        # User I/O
         self.stdin: Any = stdin or sys.stdin
         self.stdout: Any = stdout or sys.stdout
+        
+        # Internal buffering
         self.cmdqueue: list[str] = []
+
         self.completekey: str = completekey
+        
+        # Strings used by AsyncCmd
         self.prompt: str = prompt or f"{self.__class__.__name__}> "
         self.identchars: str = string.ascii_letters + string.digits + '_'
         self.intro: str = intro or "Asynchronous Command Line Interface"
+        self.ruler: str = ruler
+        self.doc_header: str = doc_header
+        self.misc_header: str = misc_header
+        self.undoc_header: str = undoc_header 
 
-        # Define a map of AsyncCmd methods decorated by @command and @async_command
+        # Raw input flag
+        self.use_rawinput = True
+
+        # Map of AsyncCmd methods decorated by @command and @async_command
         self._method_mapping: Final[dict[str, CmdMethod]] = {}
         self._update_mapping(overwrite=False)
 
@@ -144,54 +163,46 @@ class AsyncCmd:
         """
 
         self.preloop()
-        if self.use_rawinput and self.completekey:
-            try:
-                import readline
-                self.old_completer = readline.get_completer()
-                readline.set_completer(self.complete)
-                if readline.backend == "editline":
-                    if self.completekey == 'tab':
-                        # libedit uses "^I" instead of "tab"
-                        command_string = "bind ^I rl_complete"
-                    else:
-                        command_string = f"bind {self.completekey} rl_complete"
+        if self.use_rawinput and self.completekey and READLINE_AVAILABLE:
+            self.old_completer = readline.get_completer()
+            readline.set_completer(self.complete)
+            if readline.backend == "editline":
+                if self.completekey == 'tab':
+                    # libedit uses "^I" instead of "tab"
+                    command_string = "bind ^I rl_complete"
                 else:
-                    command_string = f"{self.completekey}: complete"
-                readline.parse_and_bind(command_string)
-            except ImportError:
-                pass
-        try:
-            if self.intro:
-                self.stdout.write(str(self.intro)+"\n")
-            stop = None
-            while not stop:
-                if self.cmdqueue:
-                    line = self.cmdqueue.pop(0)
+                    command_string = f"bind {self.completekey} rl_complete"
+            else:
+                command_string = f"{self.completekey}: complete"
+            readline.parse_and_bind(command_string)
+        if self.intro:
+            self.stdout.write(str(self.intro)+"\n")
+        stop = None
+        while not stop:
+            if self.cmdqueue:
+                line = self.cmdqueue.pop(0)
+            else:
+                if self.use_rawinput:
+                    try:
+                        line = input(self.prompt)
+                    except EOFError:
+                        line = 'EOF'
                 else:
-                    if self.use_rawinput:
-                        try:
-                            line = input(self.prompt)
-                        except EOFError:
-                            line = 'EOF'
+                    self.stdout.write(self.prompt)
+                    self.stdout.flush()
+                    line = self.stdin.readline()
+                    if not len(line):
+                        line = 'EOF'
                     else:
-                        self.stdout.write(self.prompt)
-                        self.stdout.flush()
-                        line = self.stdin.readline()
-                        if not len(line):
-                            line = 'EOF'
-                        else:
-                            line = line.rstrip('\r\n')
-                line = self.precmd(line)
-                stop = self.onecmd(line)
-                stop = self.postcmd(stop, line)
-            self.postloop()
-        finally:
-            if self.use_rawinput and self.completekey:
-                try:
-                    import readline
-                    readline.set_completer(self.old_completer)
-                except ImportError:
-                    pass
+                        line = line.rstrip('\r\n')
+            line = self.precmd(line)
+            stop = self.onecmd(line)
+            stop = self.postcmd(stop, line)
+
+        self.postloop()
+
+        if self.use_rawinput and self.completekey and READLINE_AVAILABLE:
+            readline.set_completer(self.old_completer)
 
 
     def precmd(self, line: str):
@@ -386,7 +397,6 @@ class AsyncCmd:
                         cmds_doc.append(cmd)
                     else:
                         cmds_undoc.append(cmd)
-            self.stdout.write(self.doc_leader)
             self.print_topics(self.doc_header,   cmds_doc,   15,80)
             self.print_topics(self.misc_header,  sorted(topics),15,80)
             self.print_topics(self.undoc_header, cmds_undoc, 15,80)
