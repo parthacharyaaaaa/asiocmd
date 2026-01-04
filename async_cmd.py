@@ -45,7 +45,7 @@ functions respectively.
 import inspect
 import string
 import sys
-from typing import Any, TextIO
+from typing import Any, Iterable, Sequence, TextIO
 
 __all__ = ("AsyncCmd",)
 
@@ -97,7 +97,7 @@ class AsyncCmd:
         self.identchars: str = string.ascii_letters + string.digits + '_'
         self.intro: str = intro or "Asynchronous Command Line Interface"
 
-    def cmdloop(self, intro=None):
+    def cmdloop(self):
         """
         Repeatedly issue a prompt, accept input, parse an initial prefix
         off the received input, and dispatch to action methods, passing them
@@ -122,8 +122,6 @@ class AsyncCmd:
             except ImportError:
                 pass
         try:
-            if intro is not None:
-                self.intro = intro
             if self.intro:
                 self.stdout.write(str(self.intro)+"\n")
             stop = None
@@ -157,14 +155,14 @@ class AsyncCmd:
                     pass
 
 
-    def precmd(self, line):
+    def precmd(self, line: str):
         """
         Hook method executed just before the command line is
         interpreted, but after the input prompt is generated and issued.
         """
         return line
 
-    def postcmd(self, stop, line):
+    def postcmd(self, stop, line: str):
         """
         Hook method executed just after a command dispatch is finished.
         """
@@ -182,7 +180,7 @@ class AsyncCmd:
         """
         pass
 
-    def parseline(self, line):
+    def parseline(self, line: str):
         """
         Parse the line into a command name and a string containing
         the arguments.  Returns a tuple containing (command, args, line).
@@ -203,7 +201,7 @@ class AsyncCmd:
         cmd, arg = line[:i], line[i:].strip()
         return cmd, arg, line
 
-    def onecmd(self, line):
+    def onecmd(self, line: str):
         """
         Interpret the argument as though it had been typed in response to the prompt.
 
@@ -239,7 +237,7 @@ class AsyncCmd:
         if self.lastcmd:
             return self.onecmd(self.lastcmd)
 
-    def default(self, line):
+    def default(self, line: str):
         """Called on an input line when the command prefix is not recognized.
 
         If this method is not overridden, it prints an error message and
@@ -360,28 +358,28 @@ class AsyncCmd:
             self.columnize(cmds, maxcol-1)
             self.stdout.write("\n")
 
-    def columnize(self, list, displaywidth=80):
+    def columnize(self, string_list: Sequence[str], displaywidth: int = 80):
         """
         Display a list of strings as a compact set of columns.
 
         Each column is only as wide as necessary.
         Columns are separated by two spaces (one was not legible enough).
         """
-        if not list:
+        if not string_list:
             self.stdout.write("<empty>\n")
             return
 
-        nonstrings = [i for i in range(len(list))
-                        if not isinstance(list[i], str)]
+        nonstrings: list[Any] = [i for i in string_list if not isinstance(i, str)]
         if nonstrings:
-            raise TypeError("list[i] not a string for i in %s"
-                            % ", ".join(map(str, nonstrings)))
-        size = len(list)
+            raise TypeError(f"Objects provided in argument 'string_list' not strings: {','.join(str(i) for i in nonstrings)}")
+        
+        size: int = len(string_list)
         if size == 1:
-            self.stdout.write('%s\n'%str(list[0]))
+            self.stdout.write(f"{string_list[0]}")
             return
+        
         # Try every row count from 1 upwards
-        for nrows in range(1, len(list)):
+        for nrows in range(1, len(string_list)):
             ncols = (size+nrows-1) // nrows
             colwidths = []
             totwidth = -2
@@ -391,7 +389,7 @@ class AsyncCmd:
                     i = row + nrows*col
                     if i >= size:
                         break
-                    x = list[i]
+                    x = string_list[i]
                     colwidth = max(colwidth, len(x))
                 colwidths.append(colwidth)
                 totwidth += colwidth + 2
@@ -400,9 +398,10 @@ class AsyncCmd:
             if totwidth <= displaywidth:
                 break
         else:
-            nrows = len(list)
+            nrows = size
             ncols = 1
             colwidths = [0]
+        
         for row in range(nrows):
             texts = []
             for col in range(ncols):
@@ -410,10 +409,10 @@ class AsyncCmd:
                 if i >= size:
                     x = ""
                 else:
-                    x = list[i]
+                    x = string_list[i]
                 texts.append(x)
             while texts and not texts[-1]:
                 del texts[-1]
             for col in range(len(texts)):
                 texts[col] = texts[col].ljust(colwidths[col])
-            self.stdout.write("%s\n"%str("  ".join(texts)))
+            self.stdout.write(" ".join(texts))
