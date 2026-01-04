@@ -204,7 +204,6 @@ class AsyncCmd:
         if self.use_rawinput and self.completekey and READLINE_AVAILABLE:
             readline.set_completer(self.old_completer)
 
-
     def precmd(self, line: str):
         """
         Hook method executed just before the command line is
@@ -230,7 +229,7 @@ class AsyncCmd:
         """
         pass
 
-    def parseline(self, line: str):
+    def parseline(self, line: str) -> tuple[str|None, str|None, str]:
         """
         Parse the line into a command name and a string containing
         the arguments.  Returns a tuple containing (command, args, line).
@@ -247,10 +246,12 @@ class AsyncCmd:
             else:
                 return None, None, line
         i, n = 0, len(line)
-        while i < n and line[i] in self.identchars: i = i+1
-        cmd, arg = line[:i], line[i:].strip()
-        return cmd, arg, line
-
+        for i in line:
+            if i not in self.identchars:
+                return line[:i], line[i:], line
+        
+        raise ValueError("Unparsable command: ", line)
+    
     async def onecmd(self, line: str):
         """
         Interpret the argument as though it had been typed in response to the prompt.
@@ -319,7 +320,6 @@ class AsyncCmd:
         Otherwise try to call complete_<command> to get list of completions.
         """
         if state == 0:
-            import readline
             origline = readline.get_line_buffer()
             line = origline.lstrip()
             stripped = len(origline) - len(line)
