@@ -352,21 +352,11 @@ class AsyncCmd:
         List available commands with "help" or detailed help with "help cmd".
         """
         if arg:
-            # XXX check arg syntax
-            try:
-                func = getattr(self, 'help_' + arg)
-            except AttributeError:
-                try:
-                    doc = getattr(self, 'do_' + arg).__doc__
-                    doc = inspect.cleandoc(doc)
-                    if doc:
-                        self.stdout.write(doc)
-                        return
-                except AttributeError:
-                    pass
+            help_method: CmdMethod|None = self._helper_mapping.get(arg.strip())
+            if not help_method:
                 self.stdout.write(f"No help available for: {arg}")
                 return
-            func()
+            help_method()
             return
         
         # Display help (if available) for all registered commands
@@ -374,14 +364,13 @@ class AsyncCmd:
         for command, method in self._method_mapping.items():
             if doc:=getattr(method, "__doc__", None):
                 documented.append(command)
-            # TODO: Add support for dedicated @help decorators and help_* methods
             else:
                 undocumented.append(method)
 
-        self.print_topics(self.doc_header, documented, 15, 80)
-        self.print_topics(self.misc_header, undocumented,15, 80)
+        self.print_topics(self.doc_header, list(self._helper_mapping.keys()), 15, 80)
+        self.print_topics(self.undoc_header, list(self._method_mapping.keys() - self._helper_mapping.keys()), 15, 80)
 
-    def print_topics(self, header: str, cmds, cmdlen, maxcol):
+    def print_topics(self, header: str, cmds: Sequence[str], cmdlen, maxcol):
         if cmds:
             self.stdout.write(header)
             if self.ruler:
