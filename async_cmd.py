@@ -373,8 +373,10 @@ class AsyncCmd:
     def print_topics(self, header: str, cmds: Sequence[str], maxcol):
         if cmds:
             self.stdout.write(header)
+            self.stdout.write("\n")
             if self.ruler:
                 self.stdout.write(self.ruler * len(header))
+                self.stdout.write("\n")
             self.columnize(cmds, maxcol-1)
             self.stdout.write("\n")
 
