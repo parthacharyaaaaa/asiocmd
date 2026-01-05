@@ -347,7 +347,7 @@ class AsyncCmd:
                      if a.startswith('help_' + args[0]))
         return list(commands | topics)
 
-    def do_help(self, arg: str) -> None:
+    async def do_help(self, arg: str) -> None:
         """
         List available commands with "help" or detailed help with "help cmd".
         """
@@ -356,7 +356,11 @@ class AsyncCmd:
             if not help_method:
                 self.stdout.write(f"No help available for: {arg}")
                 return
-            help_method()
+            
+            if inspect.iscoroutinefunction(help_method):
+                await help_method()
+            else:
+                help_method()
             return
         
         # Display help (if available) for all registered commands
