@@ -360,13 +360,6 @@ class AsyncCmd:
             return
         
         # Display help (if available) for all registered commands
-        documented, undocumented = [], []
-        for command, method in self._method_mapping.items():
-            if doc:=getattr(method, "__doc__", None):
-                documented.append(command)
-            else:
-                undocumented.append(method)
-
         self.print_topics(self.doc_header, list(self._helper_mapping.keys()), 80)
         self.print_topics(self.undoc_header, list(self._method_mapping.keys() - self._helper_mapping.keys()), 80)
 
