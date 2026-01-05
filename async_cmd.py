@@ -164,6 +164,7 @@ class AsyncCmd:
         self._method_mapping: Final[dict[str, CmdMethod]] = {}
         self._helper_mapping: Final[dict[str, CmdMethod]] = {}
         self._update_mapping(overwrite=False)
+        print(self._method_mapping.keys())
 
     async def _preloop_wrapper(self) -> None:
         if self.preloop_async_first:
@@ -375,8 +376,7 @@ class AsyncCmd:
         return []
 
     def completenames(self, text, *ignored):
-        dotext = 'do_'+text
-        return [a[3:] for a in self.get_names() if a.startswith(dotext)]
+        return [command for command in self._method_mapping.keys() if command.startswith(text)]
 
     def complete(self, text, state):
         """
@@ -386,22 +386,17 @@ class AsyncCmd:
         Otherwise try to call complete_<command> to get list of completions.
         """
         if state == 0:
+            compfunc = self.completenames
+
             origline = readline.get_line_buffer()
             line = origline.lstrip()
             stripped = len(origline) - len(line)
             begidx = readline.get_begidx() - stripped
             endidx = readline.get_endidx() - stripped
-            if begidx>0:
-                cmd, args, foo = self.parseline(line)
-                if not cmd:
-                    compfunc = self.completedefault
-                else:
-                    try:
-                        compfunc = getattr(self, 'complete_' + cmd)
-                    except AttributeError:
-                        compfunc = self.completedefault
-            else:
-                compfunc = self.completenames
+
+            if begidx>0 and (cmd:=self.parseline(line)[0]):
+                compfunc = getattr(self, f'complete_{cmd}', self.completedefault)
+                
             self.completion_matches = compfunc(text, line, begidx, endidx)
         try:
             return self.completion_matches[state]
