@@ -74,7 +74,9 @@ class AsyncCmd:
                  'identchars', 'intro', 'ruler',
                  'doc_header', 'misc_header', 'undoc_header',
                  'use_rawinput',
-                 '_method_mapping', '_helper_mapping')
+                 '_method_mapping', '_helper_mapping',
+                 'preloop_async_first', 'async_precmd_first',
+                 'postloop_async_first', 'async_postcmd_first')
 
     def _update_mapping(self, overwrite: bool) -> None:
         if overwrite:
@@ -108,6 +110,10 @@ class AsyncCmd:
                  stdin: TextIO|Any|None = None,
                  stdout: TextIO|Any|None = None,
                  use_raw_input: bool = True,
+                 preloop_async_first: bool = False,
+                 postloop_async_first: bool = False,
+                 async_postcmd_first: bool = False,
+                 async_precmd_first: bool = False,
                  intro: str|None = None,
                  ruler: str = "=",
                  doc_header: str = "Documented commands (type help <topic>):",
@@ -143,21 +149,58 @@ class AsyncCmd:
         self.undoc_header: str = undoc_header 
 
         # Raw input flag
-        self.use_rawinput = True
+        self.use_rawinput = use_raw_input
+
+        # Flags to determine whether async or sync hook methods need to be executed first
+        self.preloop_async_first = preloop_async_first
+        self.async_precmd_first = async_precmd_first
+        self.async_postcmd_first = async_postcmd_first
+        self.postloop_async_first = postloop_async_first
 
         # Map of AsyncCmd methods decorated by @command and @async_command
         self._method_mapping: Final[dict[str, CmdMethod]] = {}
         self._helper_mapping: Final[dict[str, CmdMethod]] = {}
         self._update_mapping(overwrite=False)
 
+    async def _preloop_wrapper(self) -> None:
+        if self.preloop_async_first:
+            await self.preloop_async()
+            self.preloop()
+        else:
+            self.preloop()
+            await self.preloop_async()
+    
+    async def _precmd_wrapper(self, line: str) -> str:
+        if self.async_precmd_first:
+            line = await self.precmd_async(line)
+            return self.precmd(line)
+        else:
+            line = self.precmd(line)
+            return await self.precmd_async(line)
+
+    async def _postcmd_wrapper(self, stop: Any, line: str) -> None:
+        if self.async_postcmd_first:
+            stop = await self.postcmd_async(stop, line)
+            return self.postcmd(stop, line)
+        else:
+            stop = self.postcmd(stop, line)
+            return await self.postcmd_async(stop, line)
+
+    async def _postloop_wrapper(self) -> None:
+        if self.postloop_async_first:
+            await self.postloop_async()
+            self.postloop()
+        else:
+            self.postloop()
+            await self.postloop_async()
+    
     async def cmdloop(self):
         """
         Repeatedly issue a prompt, accept input, parse an initial prefix
         off the received input, and dispatch to action methods, passing them
         the remainder of the line as argument.
         """
-
-        self.preloop()
+        await self._preloop_wrapper()
         if self.use_rawinput and self.completekey and READLINE_AVAILABLE:
             self.old_completer = readline.get_completer()
             readline.set_completer(self.complete)
@@ -170,8 +213,10 @@ class AsyncCmd:
             else:
                 command_string = f"{self.completekey}: complete"
             readline.parse_and_bind(command_string)
+        
         if self.intro:
             self.stdout.write(str(self.intro)+"\n")
+        
         stop = None
         while not stop:
             if self.cmdqueue:
@@ -190,12 +235,11 @@ class AsyncCmd:
                         line = 'EOF'
                     else:
                         line = line.rstrip('\r\n')
-            line = self.precmd(line)
+            
+            line = await self._precmd_wrapper(line)
             stop = await self.onecmd(line)
-            stop = self.postcmd(stop, line)
-
-        self.postloop()
-
+            stop = await self._postcmd_wrapper(stop, line)
+        await self._postloop_wrapper()
         if self.use_rawinput and self.completekey and READLINE_AVAILABLE:
             readline.set_completer(self.old_completer)
 
@@ -206,9 +250,22 @@ class AsyncCmd:
         """
         return line
 
+    async def precmd_async(self, line: str):
+        """
+        Asynchronous hook method executed just before the command line is
+        interpreted, but after the input prompt is generated and issued.
+        """
+        return line
+
     def postcmd(self, stop, line: str):
         """
         Hook method executed just after a command dispatch is finished.
+        """
+        return stop
+    
+    async def postcmd_async(self, stop, line: str):
+        """
+        Asynchronous hook method executed just after a command dispatch is finished.
         """
         return stop
 
@@ -218,7 +275,19 @@ class AsyncCmd:
         """
         pass
 
+    async def preloop_async(self) -> Any:
+        """
+        Hook method executed once when the cmdloop() method is called.
+        """
+        pass
+
     def postloop(self):
+        """
+        Hook method executed once when the cmdloop() method is about to return.
+        """
+        pass
+    
+    async def postloop_async(self):
         """
         Hook method executed once when the cmdloop() method is about to return.
         """
