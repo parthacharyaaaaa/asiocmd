@@ -76,7 +76,7 @@ class AsyncCmd:
                  'old_completer', 'lastcmd', 'prompt',
                  'identchars', 'intro', 'ruler',
                  'doc_header', 'misc_header', 'undoc_header',
-                 'use_rawinput',
+                 'use_rawinput', 'completion_matches',
                  '_method_mapping', '_helper_mapping',
                  'preloop_async_first', 'async_precmd_first',
                  'postloop_async_first', 'async_postcmd_first')
@@ -393,7 +393,7 @@ class AsyncCmd:
             endidx = readline.get_endidx() - stripped
             if begidx>0:
                 cmd, args, foo = self.parseline(line)
-                if cmd == '':
+                if not cmd:
                     compfunc = self.completedefault
                 else:
                     try:
