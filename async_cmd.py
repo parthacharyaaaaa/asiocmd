@@ -45,7 +45,7 @@ functions respectively.
 import inspect
 import string
 import sys
-from typing import Any, Final, Sequence, TextIO
+from typing import Any, Callable, Coroutine, Final, Sequence, TextIO, TypeAlias
 import readline
 
 from decorators import COMMAND_ATTR, HELPER_ATTR
@@ -57,6 +57,8 @@ try:
     import readline
 except ImportError:
     READLINE_AVAILABLE = False
+
+CmdMethod: TypeAlias = Callable[..., Any | Coroutine[Any, Any, Any]]
 
 class AsyncCmd:
     """A simple framework for writing line-oriented command interpreters.
