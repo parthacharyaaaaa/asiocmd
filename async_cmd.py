@@ -47,7 +47,8 @@ import string
 import sys
 from typing import Any, Final, Sequence, TextIO
 import readline
-from typing_utilities import CmdMethod
+
+from decorators import COMMAND_ATTR, HELPER_ATTR
 
 __all__ = ("AsyncCmd",)
 
@@ -85,7 +86,7 @@ class AsyncCmd:
 
         for name, method in inspect.getmembers(self, inspect.ismethod):
             # NOTE: If a command has a docstring AND a dedicated helper method, then the latter will be given priority
-            cmdname = getattr(method, "__commandname__", None)
+            cmdname = getattr(method, COMMAND_ATTR, None)
             if cmdname is not None: # Method decorated with @command or @async_command
                 self._method_mapping[cmdname] = method
                 if docs:=inspect.cleandoc(method.__doc__ or ''):
@@ -96,7 +97,7 @@ class AsyncCmd:
                 if docs:=inspect.cleandoc(method.__doc__ or ''):
                     self._helper_mapping.setdefault(name[3:], lambda d=docs : docs)
             
-            elif helpname := getattr(method, "__helpdata__", None): # Method decorated with @command_helper or @async_command_helper
+            elif helpname := getattr(method, HELPER_ATTR, None): # Method decorated with @command_helper or @async_command_helper
                 self._helper_mapping[helpname] = method
             elif name.startswith("help_"):  # Legacy method for help, defined as help_*()
                 self._helper_mapping[name[5:]] = method
