@@ -331,7 +331,7 @@ class AsyncCmd:
         """
         cmd, arg, line = self.parseline(line)
         if not line:
-            return self.emptyline()
+            return await self.emptyline()
         if cmd is None:
             return self.default(line)
         self.lastcmd = line
@@ -347,7 +347,7 @@ class AsyncCmd:
                 return await method(arg)
             return method(arg)
 
-    def emptyline(self):
+    async def emptyline(self):
         """
         Called when an empty line is entered in response to the prompt.
 
@@ -355,7 +355,7 @@ class AsyncCmd:
         command entered.
         """
         if self.lastcmd:
-            return self.onecmd(self.lastcmd)
+            return await self.onecmd(self.lastcmd)
 
     def default(self, line: str):
         """Called on an input line when the command prefix is not recognized.
