@@ -1,1 +1,1 @@
-__all__ = ("basecmd", "strictasynccmd", "asynccmd")
+__all__ = ("basecmd", "strictasynccmd", "asynccmd", "decorators")
