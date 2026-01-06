@@ -50,13 +50,7 @@ import readline
 
 from acmd.decorators import COMMAND_ATTR, HELPER_ATTR
 
-__all__ = ("BaseCmd",)
-
-READLINE_AVAILABLE: bool = True
-try:
-    import readline
-except ImportError:
-    READLINE_AVAILABLE = False
+__all__ = ("BaseCmd", "CmdMethod")
 
 CmdMethod: TypeAlias = Callable[..., Any | Coroutine[Any, Any, Any]]
 
@@ -66,10 +60,10 @@ class BaseCmd:
     These are often useful for test harnesses, administrative tools, and
     prototypes that will later be wrapped in a more sophisticated interface.
 
-    A AsyncCmd instance or subclass instance is a line-oriented interpreter
-    framework.  There is no good reason to instantiate AsyncCmd itself; rather,
+    A BaseCmd instance or subclass instance is a line-oriented interpreter
+    framework.  There is no good reason to instantiate BaseCmd itself; rather,
     it's useful as a superclass of an interpreter class you define yourself
-    in order to inherit AsyncCmd's methods and encapsulate action methods.
+    in order to inherit BaseCmd's methods and encapsulate action methods.
     """
 
     __slots__ = (
@@ -138,7 +132,7 @@ class BaseCmd:
 
         self.completekey: str = completekey
         
-        # Strings used by AsyncCmd
+        # Strings used by BaseCmd
         self.prompt: str = prompt or f"{self.__class__.__name__}> "
         self.identchars: str = string.ascii_letters + string.digits + '_'
         self.intro: str = intro or "Asynchronous Command Line Interface"
@@ -150,7 +144,7 @@ class BaseCmd:
         # Raw input flag
         self.use_rawinput = use_raw_input
 
-        # Map of AsyncCmd methods decorated by @command and @async_command
+        # Map of BaseCmd methods decorated by @command and @async_command
         self._method_mapping: Final[dict[str, CmdMethod]] = {}
         self._helper_mapping: Final[dict[str, CmdMethod]] = {}
         self._update_mapping(overwrite=False)
@@ -162,7 +156,7 @@ class BaseCmd:
         the remainder of the line as argument.
         """
         self.preloop()
-        if self.use_rawinput and self.completekey and READLINE_AVAILABLE:
+        if self.use_rawinput and self.completekey:
             self.old_completer = readline.get_completer()
             readline.set_completer(self.complete)
             if readline.backend == "editline":
@@ -200,7 +194,7 @@ class BaseCmd:
             stop = self.onecmd(line)
             stop = self.postcmd(stop, line)
         self.postloop()
-        if self.use_rawinput and self.completekey and READLINE_AVAILABLE:
+        if self.use_rawinput and self.completekey:
             readline.set_completer(self.old_completer)
 
     def precmd(self, line: str):
