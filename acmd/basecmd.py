@@ -99,7 +99,7 @@ class BaseCmd:
                 self._helper_mapping[name[5:]] = method
 
         if difference := (self._helper_mapping.keys() - self._method_mapping.keys()):
-            raise ValueError(f"{', '.join(difference)} helpers are defined for non-existent methods")
+            raise ValueError(f"helpers: ({', '.join(difference)}) are defined for non-existent methods")
 
     def __init__(self,
                  completekey: str ='tab',
