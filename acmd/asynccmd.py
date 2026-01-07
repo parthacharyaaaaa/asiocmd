@@ -1,9 +1,9 @@
-import inspect
 from typing import Any, TextIO
 import readline
 
-from acmd.basecmd import CmdMethod
 from acmd.strictasynccmd import StrictAsyncCmd
+
+__all__ = ("AsyncCmd",)
 
 class AsyncCmd(StrictAsyncCmd):
     """
