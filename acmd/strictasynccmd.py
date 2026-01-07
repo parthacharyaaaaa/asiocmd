@@ -1,8 +1,9 @@
 import inspect
-from typing import Any, NoReturn
+from typing import Any, NoReturn, Sequence, TextIO
 
-from acmd.basecmd import BaseCmd, CmdMethod
+from acmd.basecmd import BaseCmd
 from acmd.decorators import async_command
+from acmd.typing import CmdMethod
 
 import readline
 
@@ -16,6 +17,25 @@ class StrictAsyncCmd(BaseCmd):
     # Synchronous methods strictly not allowed
     def cmdloop(self) -> NoReturn:
         raise NotImplementedError(f"{self.__class__.__name__} does not allow synchronous command loop")
+
+    def __init__(self,
+                 completekey: str = 'tab',
+                 prompt: str | None = None,
+                 stdin: TextIO | Any | None = None,
+                 stdout: TextIO | Any | None = None,
+                 use_raw_input: bool = True,
+                 intro: str | None = None,
+                 ruler: str = "=",
+                 doc_header: str = "Documented commands (type help <topic>):",
+                 misc_header: str = "Miscellaneous help topics:",
+                 undoc_header: str = "Undocumented commands:",
+                 excluded_commands: Sequence[str]|None = None):
+        super().__init__(completekey, prompt,
+                         stdin, stdout,
+                         use_raw_input,
+                         intro, ruler,
+                         doc_header, misc_header, undoc_header,
+                         ["do_help", *(excluded_commands or [])])
 
     async def acmdloop(self):
         """
@@ -135,6 +155,7 @@ class StrictAsyncCmd(BaseCmd):
         """
         List available commands with "help" or detailed help with "help cmd".
         """
+        print("called")
         if arg:
             help_method: CmdMethod|None = self._helper_mapping.get(arg.strip())
             if not help_method:

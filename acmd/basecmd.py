@@ -45,14 +45,13 @@ functions respectively.
 import inspect
 import string
 import sys
-from typing import Any, Callable, Coroutine, Final, Sequence, TextIO, TypeAlias
+from typing import Any, Final, Sequence, TextIO
 import readline
 
 from acmd.decorators import COMMAND_ATTR, HELPER_ATTR
+from acmd.typing import CmdMethod, SupportsContains
 
-__all__ = ("BaseCmd", "CmdMethod")
-
-CmdMethod: TypeAlias = Callable[..., Any | Coroutine[Any, Any, Any]]
+__all__ = ("BaseCmd",)
 
 class BaseCmd:
     """A simple framework for writing line-oriented command interpreters.
@@ -72,15 +71,25 @@ class BaseCmd:
         'identchars', 'intro', 'ruler',
         'doc_header', 'misc_header', 'undoc_header',
         'use_rawinput', 'completion_matches',
-        '_method_mapping', '_helper_mapping'
+        '_method_mapping', '_helper_mapping',
+        '_excluded_parent_commands'
         )
 
-    def _update_mapping(self, overwrite: bool) -> None:
+    def _update_mapping(self,
+                        overwrite: bool,
+                        excluded_parent_commands: SupportsContains|None = None) -> None:
+        if excluded_parent_commands is None:
+            excluded_parent_commands = set()
+        print(self._excluded_parent_commands)
+
         if overwrite:
             self._method_mapping.clear()
             self._helper_mapping.clear()
-
+        
         for name, method in inspect.getmembers(self, inspect.ismethod):
+            if name in self._excluded_parent_commands and method.__qualname__.split(".")[0] != self.__class__.__name__:
+                continue
+
             # NOTE: If a command has a docstring AND a dedicated helper method, then the latter will be given priority
             cmdname = getattr(method, COMMAND_ATTR, None)
             if cmdname is not None: # Method decorated with @command or @async_command
@@ -111,7 +120,8 @@ class BaseCmd:
                  ruler: str = "=",
                  doc_header: str = "Documented commands (type help <topic>):",
                  misc_header: str = "Miscellaneous help topics:",
-                 undoc_header: str = "Undocumented commands:"):
+                 undoc_header: str = "Undocumented commands:",
+                 excluded_commands: Sequence[str]|None = None):
         """
         Instantiate a line-oriented interpreter framework.
 
@@ -133,7 +143,7 @@ class BaseCmd:
         self.completekey: str = completekey
         
         # Strings used by BaseCmd
-        self.prompt: str = prompt or f"{self.__class__.__name__}> "
+        self.prompt: str = f"\n{prompt.strip('\n ')}" if prompt else f"\n{self.__class__.__name__}> "
         self.identchars: str = string.ascii_letters + string.digits + '_'
         self.intro: str = intro or "Asynchronous Command Line Interface"
         self.ruler: str = ruler
@@ -147,6 +157,7 @@ class BaseCmd:
         # Map of BaseCmd methods decorated by @command and @async_command
         self._method_mapping: Final[dict[str, CmdMethod]] = {}
         self._helper_mapping: Final[dict[str, CmdMethod]] = {}
+        self._excluded_parent_commands: set[str] = set(excluded_commands or [])
         self._update_mapping(overwrite=False)
     
     def cmdloop(self):
@@ -170,7 +181,7 @@ class BaseCmd:
             readline.parse_and_bind(command_string)
         
         if self.intro:
-            self.stdout.write(str(self.intro)+"\n")
+            self.stdout.write(self.intro)
         
         stop = None
         while not stop:
@@ -344,11 +355,10 @@ class BaseCmd:
         if arg:
             help_method: CmdMethod|None = self._helper_mapping.get(arg.strip())
             if not help_method:
-                self.stdout.write(f"No help available for: {arg}\n")
+                self.stdout.write(f"No help available for: {arg}")
                 return
             
             help_method()
-            sys.stdout.write("\n")
             return
         
         # Display help (if available) for all registered commands
