@@ -80,7 +80,6 @@ class BaseCmd:
                         excluded_parent_commands: SupportsContains|None = None) -> None:
         if excluded_parent_commands is None:
             excluded_parent_commands = set()
-        print(self._excluded_parent_commands)
 
         if overwrite:
             self._method_mapping.clear()
@@ -363,9 +362,8 @@ class BaseCmd:
         
         # Display help (if available) for all registered commands
         self.print_topics(self.doc_header, list(self._helper_mapping.keys()), 80)
-        self.stdout.write("\n")
+        sys.stdout.write("\n")
         self.print_topics(self.undoc_header, list(self._method_mapping.keys() - self._helper_mapping.keys()), 80)
-        self.stdout.write("\n")
 
     def print_topics(self, header: str, cmds: Sequence[str], maxcol):
         if cmds:

@@ -155,7 +155,6 @@ class StrictAsyncCmd(BaseCmd):
         """
         List available commands with "help" or detailed help with "help cmd".
         """
-        print("called")
         if arg:
             help_method: CmdMethod|None = self._helper_mapping.get(arg.strip())
             if not help_method:
@@ -170,4 +169,5 @@ class StrictAsyncCmd(BaseCmd):
         
         # Display help (if available) for all registered commands
         self.print_topics(self.doc_header, list(self._helper_mapping.keys()), 80)
+        self.stdout.write("\n")
         self.print_topics(self.undoc_header, list(self._method_mapping.keys() - self._helper_mapping.keys()), 80)
