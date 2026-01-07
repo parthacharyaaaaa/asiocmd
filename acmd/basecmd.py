@@ -86,12 +86,12 @@ class BaseCmd:
             if cmdname is not None: # Method decorated with @command or @async_command
                 self._method_mapping[cmdname] = method
                 if docs:=inspect.cleandoc(method.__doc__ or ''):
-                    self._helper_mapping.setdefault(cmdname, lambda d=docs : docs)
+                    self._helper_mapping.setdefault(cmdname, lambda d=docs : self.stdout.write(d))
             
             elif name.startswith("do_"):  # Legacy method, defined as do_*()
                 self._method_mapping[name[3:]] = method
                 if docs:=inspect.cleandoc(method.__doc__ or ''):
-                    self._helper_mapping.setdefault(name[3:], lambda d=docs : docs)
+                    self._helper_mapping.setdefault(name[3:], lambda d=docs : self.stdout.write(d))
             
             elif helpname := getattr(method, HELPER_ATTR, None): # Method decorated with @command_helper or @async_command_helper
                 self._helper_mapping[helpname] = method
@@ -344,15 +344,18 @@ class BaseCmd:
         if arg:
             help_method: CmdMethod|None = self._helper_mapping.get(arg.strip())
             if not help_method:
-                self.stdout.write(f"No help available for: {arg}")
+                self.stdout.write(f"No help available for: {arg}\n")
                 return
             
             help_method()
+            sys.stdout.write("\n")
             return
         
         # Display help (if available) for all registered commands
         self.print_topics(self.doc_header, list(self._helper_mapping.keys()), 80)
+        self.stdout.write("\n")
         self.print_topics(self.undoc_header, list(self._method_mapping.keys() - self._helper_mapping.keys()), 80)
+        self.stdout.write("\n")
 
     def print_topics(self, header: str, cmds: Sequence[str], maxcol):
         if cmds:
