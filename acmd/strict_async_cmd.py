@@ -1,7 +1,7 @@
 import inspect
 from typing import Any, NoReturn, Sequence, TextIO
 
-from acmd.basecmd import BaseCmd
+from acmd.base_cmd import BaseCmd
 from acmd.decorators import async_command
 from acmd.typing import CmdMethod
 

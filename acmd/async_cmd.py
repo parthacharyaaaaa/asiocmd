@@ -1,7 +1,7 @@
 from typing import Any, TextIO
 import readline
 
-from acmd.strictasynccmd import StrictAsyncCmd
+from acmd.strict_async_cmd import StrictAsyncCmd
 
 __all__ = ("AsyncCmd",)
 
