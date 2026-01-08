@@ -11,7 +11,7 @@ class AsyncCmd(StrictAsyncCmd):
     """
 
     __slots__ = (
-        'preloop_async_first', 'async_precmd_first',
+        'apreloop_first', 'async_precmd_first',
         'postloop_async_first', 'async_postcmd_first'
         )
 
@@ -26,12 +26,12 @@ class AsyncCmd(StrictAsyncCmd):
                  doc_header: str = "Documented commands (type help <topic>):",
                  misc_header: str = "Miscellaneous help topics:",
                  undoc_header: str = "Undocumented commands:",
-                 preloop_async_first: bool = False,
+                 apreloop_first: bool = False,
                  postloop_async_first: bool = False,
                  async_postcmd_first: bool = False,
                  async_precmd_first: bool = False):
         # Flags to determine whether async or sync hook methods need to be executed first
-        self.preloop_async_first = preloop_async_first
+        self.apreloop_first = apreloop_first
         self.async_precmd_first = async_precmd_first
         self.async_postcmd_first = async_postcmd_first
         self.postloop_async_first = postloop_async_first
@@ -39,36 +39,36 @@ class AsyncCmd(StrictAsyncCmd):
         super().__init__(completekey, prompt, stdin, stdout, use_raw_input, intro, ruler, doc_header, misc_header, undoc_header)
 
     async def _preloop_wrapper(self) -> None:
-        if self.preloop_async_first:
-            await self.preloop_async()
+        if self.apreloop_first:
+            await self.apreloop()
             self.preloop()
         else:
             self.preloop()
-            await self.preloop_async()
+            await self.apreloop()
     
     async def _precmd_wrapper(self, line: str) -> str:
         if self.async_precmd_first:
-            line = await self.precmd_async(line)
+            line = await self.aprecmd(line)
             return self.precmd(line)
         else:
             line = self.precmd(line)
-            return await self.precmd_async(line)
+            return await self.aprecmd(line)
 
     async def _postcmd_wrapper(self, stop: Any, line: str) -> None:
         if self.async_postcmd_first:
-            stop = await self.postcmd_async(stop, line)
+            stop = await self.apostcmd(stop, line)
             return self.postcmd(stop, line)
         else:
             stop = self.postcmd(stop, line)
-            return await self.postcmd_async(stop, line)
+            return await self.apostcmd(stop, line)
 
     async def _postloop_wrapper(self) -> None:
         if self.postloop_async_first:
-            await self.postloop_async()
+            await self.apostloop()
             self.postloop()
         else:
             self.postloop()
-            await self.postloop_async()
+            await self.apostloop()
     
     async def acmdloop(self):
         """

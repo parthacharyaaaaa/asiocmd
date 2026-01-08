@@ -43,7 +43,7 @@ class StrictAsyncCmd(BaseCmd):
         off the received input, and dispatch to action methods, passing them
         the remainder of the line as argument.
         """
-        await self.preloop_async()
+        await self.apreloop()
         if self.use_rawinput and self.completekey:
             self.old_completer = readline.get_completer()
             readline.set_completer(self.complete)
@@ -79,34 +79,34 @@ class StrictAsyncCmd(BaseCmd):
                     else:
                         line = line.rstrip('\r\n')
             
-            line = await self.precmd_async(line)
+            line = await self.aprecmd(line)
             stop = await self.onecmd(line)
-            stop = await self.postcmd_async(stop, line)
-        await self.postloop_async()
+            stop = await self.apostcmd(stop, line)
+        await self.apostloop()
 
         if self.use_rawinput and self.completekey:
             readline.set_completer(self.old_completer)
 
-    async def precmd_async(self, line: str):
+    async def aprecmd(self, line: str):
         """
         Asynchronous hook method executed just before the command line is
         interpreted, but after the input prompt is generated and issued.
         """
         return line
     
-    async def postcmd_async(self, stop, line: str):
+    async def apostcmd(self, stop, line: str):
         """
         Asynchronous hook method executed just after a command dispatch is finished.
         """
         return stop
 
-    async def preloop_async(self) -> Any:
+    async def apreloop(self) -> Any:
         """
         Asynchronous hook method executed once when the acmdloop() method is called.
         """
         pass
     
-    async def postloop_async(self):
+    async def apostloop(self):
         """
         Asynchronous hook method executed once when the acmdloop() method is about to return.
         """
