@@ -1,5 +1,5 @@
 from tests.conf import test_io
-from tests.classes.base import RegistrarBaseCmd
+from tests.classes.base import RegistrarBaseCmd, EchoCmd
 
 def test_base_cmd_registration(test_io):
     stdin, stdout = test_io
@@ -20,3 +20,17 @@ def test_base_cmd_registration(test_io):
     unregistered_helpers: list[str] = [method for method in methods if method not in test_cmd._helper_mapping]
     assert not unregistered_helpers, \
     f"Helper method(s) ({', '.join(unregistered_helpers)}) decorated with @command_helper or prefixed with help_ not registered"
+
+def test_base_cmd_io(test_io):
+    stdin, stdout = test_io
+    test_cmd: EchoCmd = EchoCmd(stdin=stdin, stdout=stdout, use_raw_input=False)
+
+    echo_string: str = "Echoed String"
+    stdin.write(f"echo {echo_string}\nexit\n")
+    stdin.seek(0)
+
+    test_cmd.cmdloop()
+
+    stdout.seek(len(test_cmd.intro) + len(test_cmd.prompt) + 1) # CLI intro, prompt, and spacing
+
+    assert stdout.readline().rstrip("\n") == echo_string, "Echo failed"

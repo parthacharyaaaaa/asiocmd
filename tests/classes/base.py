@@ -1,6 +1,9 @@
 '''Class definitions for testing BaseCmd functionality'''
 
+from typing import Literal
 from acmd import BaseCmd, command, command_helper
+
+__all__ = ("RegistrarBaseCmd", "EchoCmd")
 
 class RegistrarBaseCmd(BaseCmd):
     '''BaseCmd implementation for testing method registration'''
@@ -30,3 +33,12 @@ class RegistrarBaseCmd(BaseCmd):
 
     # Should never show up in command line
     def unregistered(self, line: str) -> None: ...
+
+class EchoCmd(BaseCmd):
+    @command
+    def echo(self, line: str) -> None:
+        self.stdout.write(line)
+
+    @command
+    def exit(self, line: str) -> Literal[True]:
+        return True
