@@ -9,7 +9,7 @@ COMMAND_ATTR: Final[str] = "__commandname__"
 HELPER_ATTR: Final[str] = "__helpdata__"
 
 def command(arg: str | Callable[..., Any] | None = None):
-    def outer_decorated(method: Callable[..., Any]):
+    def outer_decorated(method):
         @wraps(method)
         def inner_decorated(*args, **kwargs):
             return method(*args, **kwargs)
@@ -20,7 +20,7 @@ def command(arg: str | Callable[..., Any] | None = None):
     return outer_decorated(arg) if callable(arg) else outer_decorated
 
 def async_command(arg: str | Callable[..., Coroutine[Any, Any, Any]] | None = None):
-    def outer_decorated(method: Callable[..., Any]):
+    def outer_decorated(method):
         @wraps(method)
         async def inner_decorated(*args, **kwargs):
             return await method(*args, **kwargs)
@@ -31,7 +31,7 @@ def async_command(arg: str | Callable[..., Coroutine[Any, Any, Any]] | None = No
     return outer_decorated(arg) if callable(arg) else outer_decorated
 
 def command_helper(arg: str | Callable[..., Any]  | None = None):
-    def outer_decorated(method: Callable[..., Any]) -> Callable[..., Any]:
+    def outer_decorated(method):
         @wraps(method)
         def inner_decorated(*args, **kwargs):
             return method(*args, **kwargs)
@@ -42,7 +42,7 @@ def command_helper(arg: str | Callable[..., Any]  | None = None):
     return outer_decorated(arg) if callable(arg) else outer_decorated
 
 def async_command_helper(arg: str | Callable[..., Coroutine[Any, Any, Any]] | None = None):
-    def outer_decorated(method: Callable[..., Coroutine[Any, Any, Any]]) -> Callable[..., Coroutine[Any, Any, Any]]:
+    def outer_decorated(method):
         @wraps(method)
         async def inner_decorated(*args, **kwargs):
             return await method(*args, **kwargs)
