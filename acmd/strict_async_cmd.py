@@ -58,7 +58,7 @@ class StrictAsyncCmd(BaseCmd):
             readline.parse_and_bind(command_string)
         
         if self.intro:
-            self.stdout.write(str(self.intro)+"\n")
+            self.stdout.write(self.intro)
         
         stop = None
         while not stop:
