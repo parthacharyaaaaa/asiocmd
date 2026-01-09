@@ -1,6 +1,6 @@
 '''Class definitions for testing BaseCmd functionality'''
 
-from typing import Literal
+from typing import Any, Callable, Literal, Sequence, TextIO
 from acmd import BaseCmd, command, command_helper
 
 __all__ = ("RegistrarBaseCmd", "EchoCmd")
@@ -42,3 +42,37 @@ class EchoCmd(BaseCmd):
     @command
     def exit(self, line: str) -> Literal[True]:
         return True
+    
+class HookCmd(BaseCmd):
+
+    __slots__ = ('output_array')
+
+    def __init__(self, completekey: str = 'tab', prompt: str | None = None, stdin: TextIO | Any | None = None, stdout: TextIO | Any | None = None, use_raw_input: bool = True, intro: str | None = None, ruler: str = "=", doc_header: str = "Documented commands (type help <topic>):", misc_header: str = "Miscellaneous help topics:", undoc_header: str = "Undocumented commands:", excluded_commands: Sequence[str] | None = None):
+        self.output_array: list[str] = [i.__name__ for i in (self.preloop, self.precmd, self.postcmd, self.postloop)]
+        super().__init__(completekey, prompt, stdin, stdout, use_raw_input, intro, ruler, doc_header, misc_header, undoc_header, excluded_commands)
+
+    def preloop(self):
+        self.output_array.remove(self.preloop.__name__)
+        self.stdout.write("preloop\n")
+    
+    def postloop(self):
+        self.output_array.remove(self.postloop.__name__)
+        self.stdout.write("postloop")
+
+    def precmd(self, line: str):
+        self.output_array.remove(self.precmd.__name__)
+        self.stdout.write("precmd\n")
+        return line
+
+    def postcmd(self, stop, line: str):
+        self.output_array.remove(self.postcmd.__name__)
+        self.stdout.write("postcmd\n")
+        return line
+    
+    @command
+    def exit(self, line: str) -> Literal[True]:
+        return True
+    
+    @command
+    def foo(self, line: str) -> None:
+        pass
