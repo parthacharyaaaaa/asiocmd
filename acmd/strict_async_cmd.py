@@ -2,8 +2,8 @@ import inspect
 from typing import Any, Callable, NoReturn, Sequence, TextIO
 
 from acmd.base_cmd import BaseCmd
-from acmd.decorators import async_command
-from acmd.typing import CmdMethod
+from acmd.decorators import async_command, COMMAND_ATTR, HELPER_ATTR
+from acmd.typing import CmdMethod, SupportsContains
 
 import readline
 
@@ -14,9 +14,62 @@ class StrictAsyncCmd(BaseCmd):
     Strictly asynchronous implementation of `BaseCmd`
     """
     
+    __slots__ = ('_ignored_sync_methods',)
+
     # Synchronous methods strictly not allowed
     def cmdloop(self) -> NoReturn:
         raise NotImplementedError(f"{self.__class__.__name__} does not allow synchronous command loop")
+
+    @staticmethod
+    def check_async(method: Callable) -> bool:
+        return inspect.iscoroutinefunction(method)
+
+    def _update_mapping(self, overwrite: bool) -> None:
+        if overwrite:
+            self._method_mapping.clear()
+            self._helper_mapping.clear()
+        
+        illegal_sync_commands: list[str] = []
+        for name, method in inspect.getmembers(self, inspect.ismethod):
+            cmdname = getattr(method, COMMAND_ATTR, None)
+            helpname = getattr(method, HELPER_ATTR, None)
+
+            if cmdname and helpname:
+                raise ValueError(f"Method {name} ({repr(method)}) cannot be both a command and a helper")
+
+            # NOTE: If a command has a docstring AND a dedicated helper method, then the latter will be given priority
+
+            if cmdname is not None: # Method decorated with @command or @async_command
+                if not (StrictAsyncCmd.check_async(method) or name in self._ignored_sync_methods):
+                    illegal_sync_commands.append(name)
+                    continue
+
+                self._method_mapping[cmdname] = method
+                if docs:=inspect.cleandoc(method.__doc__ or ''):
+                    self._helper_mapping.setdefault(cmdname, lambda d=docs : self.stdout.write(d))
+            
+            elif name.startswith("do_"):  # Legacy method, defined as do_*()
+                name = name[3:]
+                if not (StrictAsyncCmd.check_async(method) or name in self._ignored_sync_methods):
+                    illegal_sync_commands.append(name)
+                    continue
+
+                # Commands defined with decorators are prioritised over legacy commands of the same name
+                self._method_mapping.setdefault(name, method)
+                if docs:=inspect.cleandoc(method.__doc__ or ''):
+                    self._helper_mapping.setdefault(name, lambda d=docs : self.stdout.write(d))
+            
+            # NOTE: Helper methods are allowed to be synchronous
+            elif helpname is not None: # Method decorated with @command_helper or @async_command_helper
+                self._helper_mapping[helpname] = method
+            elif name.startswith("help_"):  # Legacy method for help, defined as help_*()
+                self._helper_mapping.setdefault(name[5:], method)
+
+        if illegal_sync_commands:
+            raise NotImplementedError(f"Registered sync commands ({', '.join(illegal_sync_commands)}) identified")
+
+        if difference := (self._helper_mapping.keys() - self._method_mapping.keys()):
+            raise ValueError(f"helpers: ({', '.join(difference)}) are defined for non-existent methods")
 
     def __init__(self,
                  completekey: str = 'tab',
@@ -28,24 +81,14 @@ class StrictAsyncCmd(BaseCmd):
                  ruler: str = "=",
                  doc_header: str = "Documented commands (type help <topic>):",
                  misc_header: str = "Miscellaneous help topics:",
-                 undoc_header: str = "Undocumented commands:",
-                 excluded_commands: Sequence[str]|None = None):
+                 undoc_header: str = "Undocumented commands:"):
+        self._ignored_sync_methods = ("help",)
         super().__init__(completekey, prompt,
                          stdin, stdout,
                          use_raw_input,
                          intro, ruler,
-                         doc_header, misc_header, undoc_header,
-                         ["do_help", *(excluded_commands or [])])
-        
-        # Raise if any synchronous commands that were registered
-        sync_commands: dict[str, Callable] = {}
-        for name, method in self._method_mapping.items():
-            if not inspect.iscoroutinefunction(method):
-                sync_commands[name] = method
-        
-        for name, sync_method in sync_commands.items():
-            raise NotImplementedError(f"Method {sync_method}, registered as {name} is synchronous and not supported by {StrictAsyncCmd.__name__}")
-
+                         doc_header, misc_header, undoc_header)
+            
     async def acmdloop(self):
         """
         Repeatedly issue a prompt, accept input, parse an initial prefix

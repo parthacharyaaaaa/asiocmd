@@ -7,9 +7,19 @@ from acmd import (StrictAsyncCmd,
 class AsyncHookTestCmd(StrictAsyncCmd):
     __slots__ = ('output_array')
 
-    def __init__(self, completekey: str = 'tab', prompt: str | None = None, stdin: TextIO | Any | None = None, stdout: TextIO | Any | None = None, use_raw_input: bool = True, intro: str | None = None, ruler: str = "=", doc_header: str = "Documented commands (type help <topic>):", misc_header: str = "Miscellaneous help topics:", undoc_header: str = "Undocumented commands:", excluded_commands: Sequence[str] | None = None):
+    def __init__(self,
+                 completekey: str = 'tab',
+                 prompt: str | None = None,
+                 stdin: TextIO | Any | None = None,
+                 stdout: TextIO | Any | None = None,
+                 use_raw_input: bool = True,
+                 intro: str | None = None,
+                 ruler: str = "=",
+                 doc_header: str = "Documented commands (type help <topic>):",
+                 misc_header: str = "Miscellaneous help topics:",
+                 undoc_header: str = "Undocumented commands:"):
         self.output_array: list[str] = [i.__name__ for i in (self.preloop, self.precmd, self.postcmd, self.postloop)]
-        super().__init__(completekey, prompt, stdin, stdout, use_raw_input, intro, ruler, doc_header, misc_header, undoc_header, excluded_commands)
+        super().__init__(completekey, prompt, stdin, stdout, use_raw_input, intro, ruler, doc_header, misc_header, undoc_header)
 
     async def apreloop(self):
         self.output_array.remove(self.preloop.__name__)

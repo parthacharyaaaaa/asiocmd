@@ -61,7 +61,7 @@ def test_commands_registration(test_io):
     async_helpers: set[str] = {"afoo", "network_io"}
 
     for name, method in cmd._method_mapping.items():
-        if not inspect.iscoroutinefunction(method):
+        if not inspect.iscoroutinefunction(method) and name not in cmd._ignored_sync_methods:
             sync_commands[name] = method
         assert name in async_commands, \
             f"Async command {name} not registered"
@@ -98,6 +98,7 @@ async def test_command_functionality(mock_open_connection, test_io):
     mock_open_connection.assert_awaited_with(host=mock_host, port=mock_port)
 
     stdout.seek(0)
+
     output_lines: list[str] = [line.strip("\n ").split()[1]
                                for line in stdout.readlines()[1:]]    # Exclude cmd intro
     for index, line in enumerate(output_lines):
