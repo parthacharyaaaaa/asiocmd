@@ -71,40 +71,39 @@ class BaseCmd:
         'identchars', 'intro', 'ruler',
         'doc_header', 'misc_header', 'undoc_header',
         'use_rawinput', 'completion_matches',
-        '_method_mapping', '_helper_mapping',
-        '_excluded_parent_commands'
+        '_method_mapping', '_helper_mapping'
         )
 
     def _update_mapping(self,
-                        overwrite: bool,
-                        excluded_parent_commands: SupportsContains|None = None) -> None:
-        if excluded_parent_commands is None:
-            excluded_parent_commands = set()
-
+                        overwrite: bool) -> None:
         if overwrite:
             self._method_mapping.clear()
             self._helper_mapping.clear()
         
         for name, method in inspect.getmembers(self, inspect.ismethod):
-            if name in self._excluded_parent_commands and method.__qualname__.split(".")[0] != self.__class__.__name__:
-                continue
+            cmdname = getattr(method, COMMAND_ATTR, None)
+            helpname = getattr(method, HELPER_ATTR, None)
+
+            if cmdname and helpname:
+                raise ValueError(f"Method {name} ({repr(method)}) cannot be both a command and a helper")
 
             # NOTE: If a command has a docstring AND a dedicated helper method, then the latter will be given priority
-            cmdname = getattr(method, COMMAND_ATTR, None)
+            # NOTE: Commands defined with decorators are prioritised over legacy commands of the same name
             if cmdname is not None: # Method decorated with @command or @async_command
                 self._method_mapping[cmdname] = method
                 if docs:=inspect.cleandoc(method.__doc__ or ''):
                     self._helper_mapping.setdefault(cmdname, lambda d=docs : self.stdout.write(d))
             
             elif name.startswith("do_"):  # Legacy method, defined as do_*()
-                self._method_mapping[name[3:]] = method
+                name = name[3:]
+                self._method_mapping.setdefault(name, method)
                 if docs:=inspect.cleandoc(method.__doc__ or ''):
-                    self._helper_mapping.setdefault(name[3:], lambda d=docs : self.stdout.write(d))
+                    self._helper_mapping.setdefault(name, lambda d=docs : self.stdout.write(d))
             
-            elif helpname := getattr(method, HELPER_ATTR, None): # Method decorated with @command_helper or @async_command_helper
+            elif helpname: # Method decorated with @command_helper or @async_command_helper
                 self._helper_mapping[helpname] = method
             elif name.startswith("help_"):  # Legacy method for help, defined as help_*()
-                self._helper_mapping[name[5:]] = method
+                self._helper_mapping.setdefault(name[5:], method)
 
         if difference := (self._helper_mapping.keys() - self._method_mapping.keys()):
             raise ValueError(f"helpers: ({', '.join(difference)}) are defined for non-existent methods")
@@ -120,7 +119,7 @@ class BaseCmd:
                  doc_header: str = "Documented commands (type help <topic>):",
                  misc_header: str = "Miscellaneous help topics:",
                  undoc_header: str = "Undocumented commands:",
-                 excluded_commands: Sequence[str]|None = None):
+                 auto_register: bool = True):
         """
         Instantiate a line-oriented interpreter framework.
 
@@ -156,8 +155,8 @@ class BaseCmd:
         # Map of BaseCmd methods decorated by @command and @async_command
         self._method_mapping: Final[dict[str, CmdMethod]] = {}
         self._helper_mapping: Final[dict[str, CmdMethod]] = {}
-        self._excluded_parent_commands: set[str] = set(excluded_commands or [])
-        self._update_mapping(overwrite=False)
+        if auto_register:
+            self._update_mapping(overwrite=False)
     
     def cmdloop(self):
         """
