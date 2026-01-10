@@ -17,7 +17,7 @@ def test_loop(test_io):
         f"{StrictAsyncCmd.__name__} failed to raise error on calling sync loop {StrictAsyncCmd.cmdloop.__name__}"
 
 @pytest.mark.asyncio
-async def test_base_cmd_hooks(test_io):
+async def test_hooks(test_io):
     stdin, stdout = test_io
     hook_cmd: AsyncHookTestCmd = AsyncHookTestCmd(stdin=stdin, stdout=stdout, use_raw_input=False)
 

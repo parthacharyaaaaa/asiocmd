@@ -41,7 +41,8 @@ class AsyncHookTestCmd(StrictAsyncCmd):
     # NOTE: BaseCmd's method cmdloop when inherited in StrictAsyncCmd already raises NotImplementedError
     # The reason hook methods are tested explicitly is because they are ideally never called in acmdloop
 
-    @command
-    def foo(self, line: str) -> None: pass
-    @command
-    def exit(self, line: str) -> Literal[True]: return True
+    @async_command
+    async def exit(self, line: str) -> Literal[True]: return True
+    @async_command
+    async def foo(self, line: str) -> None: pass
+
