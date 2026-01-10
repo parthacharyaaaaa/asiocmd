@@ -1,5 +1,5 @@
 import inspect
-from typing import Any, NoReturn, Sequence, TextIO
+from typing import Any, Callable, NoReturn, Sequence, TextIO
 
 from acmd.base_cmd import BaseCmd
 from acmd.decorators import async_command
@@ -36,6 +36,15 @@ class StrictAsyncCmd(BaseCmd):
                          intro, ruler,
                          doc_header, misc_header, undoc_header,
                          ["do_help", *(excluded_commands or [])])
+        
+        # Raise if any synchronous commands that were registered
+        sync_commands: dict[str, Callable] = {}
+        for name, method in self._method_mapping.items():
+            if not inspect.iscoroutinefunction(method):
+                sync_commands[name] = method
+        
+        for name, sync_method in sync_commands.items():
+            raise NotImplementedError(f"Method {sync_method}, registered as {name} is synchronous and not supported by {StrictAsyncCmd.__name__}")
 
     async def acmdloop(self):
         """

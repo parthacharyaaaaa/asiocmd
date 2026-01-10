@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any, Literal, Sequence, TextIO
 from acmd import (StrictAsyncCmd,
                   command, command_helper,
@@ -46,3 +47,31 @@ class AsyncHookTestCmd(StrictAsyncCmd):
     @async_command
     async def foo(self, line: str) -> None: pass
 
+class AsyncCommandCmd(StrictAsyncCmd):
+    @async_command
+    async def afoo(self, line: str) -> None:
+        await asyncio.sleep(0.01)
+        self.stdout.write(self.afoo.__name__)
+    
+    @async_command_helper("afoo")
+    async def afoo_helper(self) -> None:
+        self.stdout.write(self.afoo_helper.__name__)
+
+    @async_command("network_io")
+    async def mock_io(self, line: str) -> None:
+        try:
+            host, port = line.split(":")
+            await asyncio.open_connection(host=host, port=int(port))
+        except ConnectionError:
+            pass
+        finally:
+            self.stdout.write(self.mock_io.__name__)
+
+    @command_helper("network_io")
+    def io_helper(self) -> None:
+        self.stdout.write(self.io_helper.__name__)
+
+    @async_command
+    async def exit(self, line: str) -> Literal[True]:
+        self.stdout.write(self.exit.__name__)
+        return True
