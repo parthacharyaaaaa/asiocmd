@@ -36,7 +36,9 @@ class AsyncCmd(StrictAsyncCmd):
         self.async_postcmd_first = async_postcmd_first
         self.postloop_async_first = postloop_async_first
 
-        super().__init__(completekey, prompt, stdin, stdout, use_raw_input, intro, ruler, doc_header, misc_header, undoc_header)
+        super(StrictAsyncCmd, self).__init__(completekey, prompt, stdin, stdout, use_raw_input, intro, ruler, doc_header, misc_header, undoc_header,
+                                             auto_register=False)
+        super(StrictAsyncCmd, self)._update_mapping(False)
 
     async def _preloop_wrapper(self) -> None:
         if self.apreloop_first:
