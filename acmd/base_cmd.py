@@ -251,7 +251,7 @@ class BaseCmd:
 
         for i in range(len(line)):
             if line[i] not in self.identchars:
-                return line[:i], line[i:], line
+                return line[:i].strip(), line[i:].strip(), line
         return line, "", line
     
     def onecmd(self, line: str):

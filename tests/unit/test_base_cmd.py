@@ -31,7 +31,7 @@ def test_base_cmd_io(test_io):
 
     test_cmd.cmdloop()
 
-    stdout.seek(len(test_cmd.intro) + len(test_cmd.prompt) + 1) # CLI intro, prompt, and spacing
+    stdout.seek(len(test_cmd.intro) + len(test_cmd.prompt)) # CLI intro and prompt
 
     assert stdout.readline().rstrip("\n") == echo_string, "Echo failed"
 
