@@ -1,7 +1,9 @@
+from typing import Literal
 import pytest
 from tests.conf import test_io
+import io
 from acmd import AsyncCmd
-from tests.classes.async_ import AsyncTestCmd
+from tests.classes.async_ import AsyncTestCmd, AsyncHookCmd
 from unittest.mock import patch
 
 def test_loop(test_io) -> None:
@@ -16,6 +18,65 @@ def test_loop(test_io) -> None:
     
     assert failed, \
         "AsyncCmd failed to reject sync cmdloop"
+
+def _get_output(kwarg: Literal["apreloop_first", "aprecmd_first", "apostcmd_first", "apostloop_first"],
+                  flag: bool) -> tuple[str, str]:
+    if kwarg == "apreloop_first":
+        return (
+            (AsyncHookCmd.apreloop.__name__, AsyncHookCmd.preloop.__name__)
+            if flag
+            else (AsyncHookCmd.preloop.__name__, AsyncHookCmd.apreloop.__name__)
+        )
+
+    elif kwarg == "aprecmd_first":
+        return (
+            (AsyncHookCmd.aprecmd.__name__, AsyncHookCmd.precmd.__name__)
+            if flag
+            else (AsyncHookCmd.precmd.__name__, AsyncHookCmd.aprecmd.__name__)
+        )
+
+    elif kwarg == "apostcmd_first":
+        return (
+            (AsyncHookCmd.apostcmd.__name__, AsyncHookCmd.postcmd.__name__)
+            if flag
+            else (AsyncHookCmd.postcmd.__name__, AsyncHookCmd.apostcmd.__name__)
+        )
+
+    elif kwarg == "apostloop_first":
+        return (
+            (AsyncHookCmd.apostloop.__name__, AsyncHookCmd.postloop.__name__)
+            if flag
+            else (AsyncHookCmd.postloop.__name__, AsyncHookCmd.apostloop.__name__)
+        )
+
+@pytest.mark.asyncio
+async def test_hooks() -> None:
+    output_stream: str = "exit"
+
+    hook_kwargs: list[str] = ["apreloop_first", "aprecmd_first", "apostcmd_first", "apostloop_first"]
+    for b in range(0, 0b10000):
+        kwarg_combination: dict[str, bool] = {hook_kwarg : bool(b & (2**i))
+                                              for i, hook_kwarg
+                                              in enumerate(hook_kwargs)}
+        expected_outputs: list[str] = [expected_output
+                                       for kwarg, flag in kwarg_combination.items()
+                                       for expected_output in _get_output(kwarg, flag)]  # pyright: ignore[reportArgumentType]
+        
+        stdin, stdout = io.StringIO(), io.StringIO()
+        acmd: AsyncHookCmd = AsyncHookCmd(stdin=stdin, stdout=stdout, use_raw_input=False,
+                                          apreloop_first=kwarg_combination["apreloop_first"],
+                                          aprecmd_first=kwarg_combination["aprecmd_first"],
+                                          apostcmd_first=kwarg_combination["apostcmd_first"],
+                                          apostloop_first=kwarg_combination["apostloop_first"])
+
+        stdin.write(output_stream)
+        stdin.seek(0)
+        await acmd.acmdloop()
+        assert acmd.order_list == expected_outputs, \
+            f'''Unexpected outputs for hook methods
+            Hook flags: {kwarg_combination},
+            Expected Output: {', '.join(expected_outputs)},
+            Observed output: {', '.join(acmd.order_list)}'''
 
 @pytest.mark.asyncio
 @patch("asyncio.open_connection")
