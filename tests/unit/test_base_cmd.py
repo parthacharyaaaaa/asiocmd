@@ -1,5 +1,5 @@
 from tests.conf import test_io
-from tests.classes.base import RegistrarBaseCmd, EchoCmd, HookCmd
+from tests.classes.base import RegistrarBaseCmd, EchoCmd, HookCmd, DecoratorCmd
 
 def test_base_cmd_registration(test_io):
     stdin, stdout = test_io
@@ -64,3 +64,17 @@ def test_base_cmd_hooks(test_io):
         assert hook_output == output_lines.pop(0), \
         "Unexpected output captured, does not match expected stdout sequence"
     
+def test_base_cmd_decorators(test_io):
+    stdin, stdout = test_io
+    cmd: DecoratorCmd = DecoratorCmd(stdin=stdin, stdout=stdout, use_raw_input=False)
+
+    expected_outputs: list[str] = [cmd.foo.__name__, cmd.abc.__name__, cmd.do_bar.__name__, cmd.help_bar.__name__]
+    stdin.write("\n".join(["foo", "help foo", "bar", "help bar", "exit"]))
+    stdin.seek(0)
+
+    cmd.cmdloop()
+
+    assert cmd.method_decorator_calls == expected_outputs, \
+        f'''Expected output not found
+        Expected: ({', '.join(expected_outputs)})
+        Observed: ({', '.join(cmd.method_decorator_calls)})'''
