@@ -45,6 +45,7 @@ functions respectively.
 import inspect
 import string
 import sys
+from types import MethodType
 from typing import Any, Final, Sequence, TextIO
 import readline
 
@@ -74,6 +75,17 @@ class BaseCmd:
         '_method_mapping', '_helper_mapping'
         )
 
+    @staticmethod
+    def _find_decorator_attr(method: MethodType, attr: str):
+        func = getattr(method, "__func__", method)
+
+        while func:
+            if hasattr(func, attr):
+                return getattr(func, attr)
+            func = getattr(func, "__wrapped__", None)
+
+        return None        
+
     def _update_mapping(self,
                         overwrite: bool) -> None:
         if overwrite:
@@ -81,9 +93,8 @@ class BaseCmd:
             self._helper_mapping.clear()
         
         for name, method in inspect.getmembers(self, inspect.ismethod):
-            cmdname = getattr(method, COMMAND_ATTR, None)
-            helpname = getattr(method, HELPER_ATTR, None)
-
+            cmdname = self._find_decorator_attr(method, COMMAND_ATTR)
+            helpname = self._find_decorator_attr(method, HELPER_ATTR)
             if cmdname and helpname:
                 raise ValueError(f"Method {name} ({repr(method)}) cannot be both a command and a helper")
 
