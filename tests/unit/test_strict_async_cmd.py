@@ -3,7 +3,7 @@ import inspect
 from typing import Callable
 import pytest
 from tests.conf import test_io
-from tests.classes.strict_async import AsyncHookTestCmd, AsyncCommandCmd
+from tests.classes.strict_async import AsyncHookTestCmd, AsyncCommandCmd, AsyncDecoratorCmd
 from acmd import StrictAsyncCmd
 
 from unittest.mock import patch
@@ -105,3 +105,21 @@ async def test_command_functionality(mock_open_connection, test_io):
         # Match stdout with expected outputs
         assert line == commands[index][2], \
         f"Unexpected output for command {commands[index][0]}"
+
+@pytest.mark.asyncio
+async def test_base_cmd_decorators(test_io):
+    stdin, stdout = test_io
+    cmd: AsyncDecoratorCmd = AsyncDecoratorCmd(stdin=stdin, stdout=stdout, use_raw_input=False)
+
+    expected_outputs: list[str] = [cmd.afoo.__name__, cmd.aabc.__name__, cmd.do_abar.__name__,
+                                   cmd.help_abar.__name__, cmd.areversed_foo.__name__]
+    stdin.write("\n".join(["afoo", "help afoo", "abar", "help abar", "arfoo",
+                           "exit"]))
+    stdin.seek(0)
+
+    await cmd.acmdloop()
+
+    assert cmd.method_decorator_calls == expected_outputs, \
+        f'''Expected output not found
+        Expected: ({', '.join(expected_outputs)})
+        Observed: ({', '.join(cmd.method_decorator_calls)})'''

@@ -1,4 +1,5 @@
 import asyncio
+from functools import wraps
 from typing import Any, Literal, Sequence, TextIO
 from acmd import (StrictAsyncCmd,
                   command, command_helper,
@@ -85,3 +86,45 @@ class AsyncCommandCmd(StrictAsyncCmd):
     async def exit(self, line: str) -> Literal[True]:
         self.stdout.write(self.exit.__name__)
         return True
+    
+class AsyncDecoratorCmd(StrictAsyncCmd):
+    
+    __slots__ = ("method_decorator_calls",)
+    
+    # Generic decorators
+    @staticmethod
+    def generic_method_decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if not (args and isinstance(args[0], AsyncDecoratorCmd)):
+                raise ValueError(f"Bound method {func.__name__} called without {AsyncDecoratorCmd.__class__.__name__} as first postional argument")
+            
+            instance: AsyncDecoratorCmd = args[0]
+            instance.method_decorator_calls.append(func.__name__)
+            return func(*args, **kwargs)
+        return wrapper
+            
+    def __init__(self, completekey: str = 'tab', prompt: str | None = None, stdin: TextIO | Any | None = None, stdout: TextIO | Any | None = None, use_raw_input: bool = True, intro: str | None = None, ruler: str = "=", doc_header: str = "Documented commands (type help <topic>):", misc_header: str = "Miscellaneous help topics:", undoc_header: str = "Undocumented commands:", auto_register: bool = True):
+        super().__init__(completekey, prompt, stdin, stdout, use_raw_input, intro, ruler, doc_header, misc_header, undoc_header)
+        self.method_decorator_calls: list[str] = []
+
+    @generic_method_decorator
+    @async_command
+    async def afoo(self, line: str) -> None: pass
+
+    @generic_method_decorator
+    @async_command_helper("afoo")
+    async def aabc(self) -> None: pass
+
+    @generic_method_decorator
+    async def do_abar(self, line: str) -> None: pass
+
+    @generic_method_decorator
+    async def help_abar(self) -> None: pass
+
+    @async_command("arfoo")
+    @generic_method_decorator
+    async def areversed_foo(self, line: str) -> None: pass
+    
+    @async_command
+    async def exit(self, line: str) -> Literal[True]: return True
