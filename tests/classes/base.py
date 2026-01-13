@@ -113,6 +113,10 @@ class DecoratorCmd(BaseCmd):
 
     @generic_method_decorator
     def help_bar(self) -> None: pass
+
+    @command("rfoo")
+    @generic_method_decorator
+    def reversed_foo(self, line: str) -> None: pass
     
     @command
     def exit(self, line: str) -> Literal[True]: return True

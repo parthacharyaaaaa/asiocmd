@@ -68,8 +68,9 @@ def test_base_cmd_decorators(test_io):
     stdin, stdout = test_io
     cmd: DecoratorCmd = DecoratorCmd(stdin=stdin, stdout=stdout, use_raw_input=False)
 
-    expected_outputs: list[str] = [cmd.foo.__name__, cmd.abc.__name__, cmd.do_bar.__name__, cmd.help_bar.__name__]
-    stdin.write("\n".join(["foo", "help foo", "bar", "help bar", "exit"]))
+    expected_outputs: list[str] = [cmd.foo.__name__, cmd.abc.__name__,
+                                   cmd.do_bar.__name__, cmd.help_bar.__name__, cmd.reversed_foo.__name__]
+    stdin.write("\n".join(["foo", "help foo", "bar", "help bar", "rfoo", "exit"]))
     stdin.seek(0)
 
     cmd.cmdloop()
