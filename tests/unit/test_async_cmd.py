@@ -3,7 +3,7 @@ import pytest
 from tests.conf import test_io
 import io
 from acmd import AsyncCmd
-from tests.classes.async_ import AsyncTestCmd, AsyncHookCmd
+from tests.classes.async_ import AsyncTestCmd, AsyncHookCmd, AsyncDecoratorCmd
 from unittest.mock import patch
 
 def test_loop(test_io) -> None:
@@ -112,3 +112,24 @@ async def test_functionality(mock_aio, test_io) -> None:
         # Match stdout with expected outputs
         assert line == commands[index][2], \
         f"Unexpected output for command {commands[index][0]}"
+
+@pytest.mark.asyncio
+async def test_cmd_decorators(test_io):
+    stdin, stdout = test_io
+    cmd: AsyncDecoratorCmd = AsyncDecoratorCmd(stdin=stdin, stdout=stdout, use_raw_input=False)
+
+    expected_outputs: list[str] = [cmd.foo.__name__, cmd.abc.__name__,
+                                   cmd.do_bar.__name__, cmd.help_bar.__name__, cmd.reversed_foo.__name__,
+                                   cmd.afoo.__name__, cmd.aabc.__name__, cmd.do_abar.__name__,
+                                   cmd.help_abar.__name__, cmd.areversed_foo.__name__]
+    stdin.write("\n".join(["foo", "help foo", "bar", "help bar", "rfoo",
+                           "afoo", "help afoo", "abar", "help abar", "arfoo",
+                           "exit"]))
+    stdin.seek(0)
+
+    await cmd.acmdloop()
+
+    assert cmd.method_decorator_calls == expected_outputs, \
+        f'''Expected output not found
+        Expected: ({', '.join(expected_outputs)})
+        Observed: ({', '.join(cmd.method_decorator_calls)})'''
