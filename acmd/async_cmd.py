@@ -1,11 +1,14 @@
-from typing import Any, TextIO
+import inspect
+from typing import Any, Callable, NoReturn, TextIO
 import readline
 
-from acmd.strict_async_cmd import StrictAsyncCmd
+from acmd.base_cmd import BaseCmd
+from acmd.decorators import async_command
+from acmd.typing import CmdMethod
 
 __all__ = ("AsyncCmd",)
 
-class AsyncCmd(StrictAsyncCmd):
+class AsyncCmd(BaseCmd):
     """
     Async+Sync implementation of `BaseCmd`
     """
@@ -14,6 +17,10 @@ class AsyncCmd(StrictAsyncCmd):
         'apreloop_first', 'aprecmd_first',
         'apostloop_first', 'apostcmd_first'
         )
+
+    @staticmethod
+    def check_async(method: Callable) -> bool:
+        return inspect.iscoroutinefunction(inspect.unwrap(method))
 
     def __init__(self,
                  completekey: str = 'tab',
@@ -36,9 +43,33 @@ class AsyncCmd(StrictAsyncCmd):
         self.apostcmd_first = apostcmd_first
         self.apostloop_first = apostloop_first
 
-        super(StrictAsyncCmd, self).__init__(completekey, prompt, stdin, stdout, use_raw_input, intro, ruler, doc_header, misc_header, undoc_header,
-                                             auto_register=False)
-        super(StrictAsyncCmd, self)._update_mapping(False)
+        super().__init__(completekey, prompt, stdin, stdout, use_raw_input, intro, ruler, doc_header, misc_header, undoc_header)
+
+    # Asynchronous hook methods
+    async def aprecmd(self, line: str):
+        """
+        Asynchronous hook method executed just before the command line is
+        interpreted, but after the input prompt is generated and issued.
+        """
+        return line
+    
+    async def apostcmd(self, stop, line: str):
+        """
+        Asynchronous hook method executed just after a command dispatch is finished.
+        """
+        return stop
+
+    async def apreloop(self) -> Any:
+        """
+        Asynchronous hook method executed once when the acmdloop() method is called.
+        """
+        pass
+    
+    async def apostloop(self):
+        """
+        Asynchronous hook method executed once when the acmdloop() method is about to return.
+        """
+        pass
 
     async def _preloop_wrapper(self) -> None:
         if self.apreloop_first:
@@ -68,6 +99,10 @@ class AsyncCmd(StrictAsyncCmd):
         self.postloop()
         return await self.apostloop()
     
+    # Synchronous command loop strictly not allowed
+    def cmdloop(self) -> NoReturn:
+        raise NotImplementedError(f"{self.__class__.__name__} does not allow synchronous command loop")
+
     async def acmdloop(self):
         """
         Repeatedly issue a prompt, accept input, parse an initial prefix
@@ -116,3 +151,63 @@ class AsyncCmd(StrictAsyncCmd):
         await self._postloop_wrapper()
         if self.use_rawinput and self.completekey:
             readline.set_completer(self.old_completer)
+
+    async def onecmd(self, line: str):
+        """
+        Interpret the argument as though it had been typed in response to the prompt.
+
+        This may be overridden, but should not normally need to be;
+        see the precmd() and postcmd() methods for useful execution hooks.
+        The return value is a flag indicating whether interpretation of
+        commands by the interpreter should stop.
+
+        """
+        cmd, arg, line = self.parseline(line)
+        if not line:
+            return await self.emptyline()
+        if cmd is None:
+            return self.default(line)
+        self.lastcmd = line
+        if line == 'EOF' :
+            self.lastcmd = ''
+        if cmd == '':
+            return self.default(line)
+        else:
+            method: CmdMethod|None = self._method_mapping.get(cmd)
+            if not method:
+                return self.default(line)
+            if inspect.iscoroutinefunction(inspect.unwrap(method)):
+                return await method(arg)
+            return method(arg)
+
+    async def emptyline(self):
+        """
+        Called when an empty line is entered in response to the prompt.
+
+        If this method is not overridden, it repeats the last nonempty
+        command entered.
+        """
+        if self.lastcmd:
+            return await self.onecmd(self.lastcmd)
+        
+    @async_command("help")
+    async def async_do_help(self, arg: str) -> None:
+        """
+        List available commands with "help" or detailed help with "help cmd".
+        """
+        if arg:
+            help_method: CmdMethod|None = self._helper_mapping.get(arg.strip())
+            if not help_method:
+                self.stdout.write(f"No help available for: {arg}")
+                return
+            
+            if inspect.iscoroutinefunction(inspect.unwrap(help_method)):
+                await help_method()
+            else:
+                help_method()
+            return
+        
+        # Display help (if available) for all registered commands
+        self.print_topics(self.doc_header, list(self._helper_mapping.keys()), 80)
+        self.stdout.write("\n")
+        self.print_topics(self.undoc_header, list(self._method_mapping.keys() - self._helper_mapping.keys()), 80)
