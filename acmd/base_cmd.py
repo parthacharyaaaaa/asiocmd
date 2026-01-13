@@ -143,8 +143,8 @@ class BaseCmd:
         """
         
         # User I/O
-        self.stdin: Any = stdin or sys.stdin
-        self.stdout: Any = stdout or sys.stdout
+        self.stdin: TextIO|Any = stdin or sys.stdin
+        self.stdout: TextIO|Any = stdout or sys.stdout
         
         # Internal buffering
         self.cmdqueue: list[str] = []
@@ -367,7 +367,7 @@ class BaseCmd:
         
         # Display help (if available) for all registered commands
         self.print_topics(self.doc_header, list(self._helper_mapping.keys()), 80)
-        sys.stdout.write("\n")
+        self.stdout.write("\n")
         self.print_topics(self.undoc_header, list(self._method_mapping.keys() - self._helper_mapping.keys()), 80)
 
     def print_topics(self, header: str, cmds: Sequence[str], maxcol):

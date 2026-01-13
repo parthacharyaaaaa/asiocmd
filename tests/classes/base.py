@@ -16,7 +16,7 @@ class RegistrarBaseCmd(BaseCmd):
 
     @command_helper("foo")
     def abc(self) -> None:
-        self.stdout.write(self.xyz)
+        self.stdout.write(self.xyz.__name__)
 
     @command    # Implicitly declared command name
     def bar(self, line: str) -> None:
@@ -24,14 +24,14 @@ class RegistrarBaseCmd(BaseCmd):
     
     @command_helper("bar")
     def bartender(self) -> None:
-        self.stdout.write(self.bar)
+        self.stdout.write(self.bar.__name__)
 
     # Legacy registration
     def do_stuff(self, line: str) -> None:
         self.stdout.write("stuff")
 
     def help_stuff(self, line: str) -> None:
-        self.stdout.write(self.do_stuff)
+        self.stdout.write(self.do_stuff.__name__)
 
     # Should never show up in command line
     def unregistered(self, line: str) -> None: ...
