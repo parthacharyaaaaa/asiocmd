@@ -22,7 +22,7 @@ class StrictAsyncCmd(BaseCmd):
 
     @staticmethod
     def check_async(method: Callable) -> bool:
-        return inspect.iscoroutinefunction(method)
+        return inspect.iscoroutinefunction(inspect.unwrap(method))
 
     def _update_mapping(self, overwrite: bool) -> None:
         if overwrite:
@@ -188,7 +188,7 @@ class StrictAsyncCmd(BaseCmd):
             method: CmdMethod|None = self._method_mapping.get(cmd)
             if not method:
                 return self.default(line)
-            if inspect.iscoroutinefunction(method):
+            if inspect.iscoroutinefunction(inspect.unwrap(method)):
                 return await method(arg)
             return method(arg)
 
@@ -213,7 +213,7 @@ class StrictAsyncCmd(BaseCmd):
                 self.stdout.write(f"No help available for: {arg}")
                 return
             
-            if inspect.iscoroutinefunction(help_method):
+            if inspect.iscoroutinefunction(inspect.unwrap(help_method)):
                 await help_method()
             else:
                 help_method()
