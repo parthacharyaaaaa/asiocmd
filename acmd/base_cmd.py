@@ -346,15 +346,10 @@ class BaseCmd:
         except IndexError:
             return None
 
-    def get_names(self):
-        # This method used to pull in base class attributes
-        # at a time dir() didn't do it yet.
-        return dir(self.__class__)
-
     def complete_help(self, *args):
         commands = set(self.completenames(*args))
-        topics = set(a[5:] for a in self.get_names()
-                     if a.startswith('help_' + args[0]))
+        topics: set[str] = set(helper for helper in self._helper_mapping
+                               if helper.startswith(args[0]))
         return list(commands | topics)
 
     def do_help(self, arg: str) -> None:
