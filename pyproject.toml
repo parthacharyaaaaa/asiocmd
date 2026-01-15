@@ -3,10 +3,10 @@ requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "acmd"
-version = "0.1.0"
+name = "asiocmd"
+version = "1.0.0"
 requires-python = ">=3.10"
-keywords = ["acmd", "async", "tool", "cmd", "cli"]
+keywords = ["asiocmd", "async", "tool", "cmd", "cli"]
 description = "Modern and asynchronous support for cmd.Cmd"
 license = { file = "LICENSE" }
 readme = "README.md"
