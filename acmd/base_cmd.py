@@ -50,7 +50,7 @@ from typing import Any, Final, Sequence, TextIO
 import readline
 
 from acmd.decorators import COMMAND_ATTR, HELPER_ATTR
-from acmd.typing import CmdMethod, SupportsContains
+from acmd.typing import CmdMethod
 
 __all__ = ("BaseCmd",)
 
