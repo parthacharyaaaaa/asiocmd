@@ -2,7 +2,7 @@ from typing import Literal
 import pytest
 from tests.conf import test_io
 import io
-from acmd import AsyncCmd
+from asiocmd import AsyncCmd
 from tests.classes.async_ import AsyncTestCmd, AsyncHookCmd, AsyncDecoratorCmd
 from unittest.mock import patch
 

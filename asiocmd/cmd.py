@@ -49,8 +49,8 @@ from types import MethodType
 from typing import Any, Final, Sequence, TextIO
 import readline
 
-from acmd.decorators import COMMAND_ATTR, HELPER_ATTR
-from acmd.typing import CmdMethod
+from asiocmd.decorators import COMMAND_ATTR, HELPER_ATTR
+from asiocmd.typing import CmdMethod
 
 __all__ = ("Cmd",)
 

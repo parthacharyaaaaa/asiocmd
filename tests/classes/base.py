@@ -2,7 +2,7 @@
 
 from functools import wraps
 from typing import Any, Literal, TextIO
-from acmd import Cmd, command, command_helper
+from asiocmd import Cmd, command, command_helper
 
 __all__ = ("RegistrarBaseCmd", "EchoCmd")
 

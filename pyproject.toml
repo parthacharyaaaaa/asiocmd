@@ -9,6 +9,7 @@ requires-python = ">=3.10"
 keywords = ["acmd", "async", "tool", "cmd", "cli"]
 description = "Modern and asynchronous support for cmd.Cmd"
 license = { file = "LICENSE" }
+readme = "README.md"
 authors = [
     {name = "Parth Acharya", email="parthacharya@protonmail.com"}
 ]

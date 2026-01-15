@@ -1,7 +1,7 @@
-# acmd: Modern cmd with async support
+# asiocmd: Modern cmd with async support
 
 # Overview
-`acmd` provides a very lightweight repacking of Python's cmd.Cmd class for building command line interfaces. The package contains 2 classes, namely `Cmd` and an inherited `AsyncCmd`
+`asiocmd` provides a very lightweight repacking of Python's cmd.Cmd class for building command line interfaces. The package contains 2 classes, namely `Cmd` and an inherited `AsyncCmd`
 
 ### Cmd
 `Cmd` provides virtually the same functionality and development interface as `cmd.Cmd`, with the primary difference being in the way methods are looked up at runtime.
@@ -11,7 +11,7 @@ An implementation of `Cmd` with added support for asynchronous methods
 
 # Usage
 ```python
-from acmd import (AsyncCmd,
+from asiocmd import (AsyncCmd,
                   command, command_helper,
                   async_command, async_command_helper)
 
@@ -61,7 +61,7 @@ Note: **Cmd** uses cmdloop() to launch itself, the coroutine `acmdloop` belongs 
 Stacking of decorators are also supported, given that function metadata is preserved using `functools.wraps`
 
 ```python
-from acmd import (AsyncCmd, command)
+from asiocmd import (AsyncCmd, command)
 import functools
 
 def generic_method_decorator(func):

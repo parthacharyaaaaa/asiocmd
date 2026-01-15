@@ -1,7 +1,7 @@
 import asyncio
 from functools import wraps
 from typing import Any, Literal, TextIO
-from acmd import (AsyncCmd,
+from asiocmd import (AsyncCmd,
                   command, command_helper,
                   async_command, async_command_helper)
 

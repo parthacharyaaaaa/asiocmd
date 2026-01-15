@@ -2,9 +2,9 @@ import inspect
 from typing import Any, Callable, NoReturn, TextIO
 import readline
 
-from acmd.cmd import Cmd
-from acmd.decorators import async_command
-from acmd.typing import CmdMethod
+from asiocmd.cmd import Cmd
+from asiocmd.decorators import async_command
+from asiocmd.typing import CmdMethod
 
 __all__ = ("AsyncCmd",)
 
