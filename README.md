@@ -9,6 +9,11 @@
 ### AsyncCmd
 An implementation of `Cmd` with added support for asynchronous methods 
 
+# Installation
+```bash
+pip install asiocmd
+```
+
 # Usage
 ```python
 from asiocmd import (AsyncCmd,
