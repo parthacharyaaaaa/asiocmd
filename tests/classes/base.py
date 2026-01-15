@@ -1,14 +1,13 @@
-'''Class definitions for testing BaseCmd functionality'''
+'''Class definitions for testing Cmd functionality'''
 
 from functools import wraps
 from typing import Any, Literal, TextIO
-from acmd import BaseCmd, command, command_helper
-from acmd.decorators import HELPER_ATTR, COMMAND_ATTR
+from acmd import Cmd, command, command_helper
 
 __all__ = ("RegistrarBaseCmd", "EchoCmd")
 
-class RegistrarBaseCmd(BaseCmd):
-    '''BaseCmd implementation for testing method registration'''
+class RegistrarBaseCmd(Cmd):
+    '''Cmd implementation for testing method registration'''
     # Decorator-based registration
     @command("foo") # Explicitly declared command name
     def xyz(self, line: str) -> None:
@@ -36,7 +35,7 @@ class RegistrarBaseCmd(BaseCmd):
     # Should never show up in command line
     def unregistered(self, line: str) -> None: ...
 
-class EchoCmd(BaseCmd):
+class EchoCmd(Cmd):
     @command
     def echo(self, line: str) -> None:
         self.stdout.write(line)
@@ -45,7 +44,7 @@ class EchoCmd(BaseCmd):
     def exit(self, line: str) -> Literal[True]:
         return True
     
-class HookCmd(BaseCmd):
+class HookCmd(Cmd):
 
     __slots__ = ('output_array')
 
@@ -79,7 +78,7 @@ class HookCmd(BaseCmd):
     def foo(self, line: str) -> None:
         pass
 
-class DecoratorCmd(BaseCmd):
+class DecoratorCmd(Cmd):
     
     __slots__ = ("method_decorator_calls",)
     

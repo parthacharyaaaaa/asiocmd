@@ -52,18 +52,18 @@ import readline
 from acmd.decorators import COMMAND_ATTR, HELPER_ATTR
 from acmd.typing import CmdMethod
 
-__all__ = ("BaseCmd",)
+__all__ = ("Cmd",)
 
-class BaseCmd:
+class Cmd:
     """A simple framework for writing line-oriented command interpreters.
 
     These are often useful for test harnesses, administrative tools, and
     prototypes that will later be wrapped in a more sophisticated interface.
 
-    A BaseCmd instance or subclass instance is a line-oriented interpreter
-    framework.  There is no good reason to instantiate BaseCmd itself; rather,
+    A Cmd instance or subclass instance is a line-oriented interpreter
+    framework.  There is no good reason to instantiate Cmd itself; rather,
     it's useful as a superclass of an interpreter class you define yourself
-    in order to inherit BaseCmd's methods and encapsulate action methods.
+    in order to inherit Cmd's methods and encapsulate action methods.
     """
 
     __slots__ = (
@@ -151,7 +151,7 @@ class BaseCmd:
 
         self.completekey: str = completekey
         
-        # Strings used by BaseCmd
+        # Strings used by Cmd
         self.prompt: str = f"\n{prompt.strip('\n ')}" if prompt else f"\n{self.__class__.__name__}> "
         self.identchars: str = string.ascii_letters + string.digits + '_'
         self.intro: str = intro or "Asynchronous Command Line Interface"
@@ -163,7 +163,7 @@ class BaseCmd:
         # Raw input flag
         self.use_rawinput = use_raw_input
 
-        # Map of BaseCmd methods decorated by @command and @async_command
+        # Map of Cmd methods decorated by @command and @async_command
         self._method_mapping: Final[dict[str, CmdMethod]] = {}
         self._helper_mapping: Final[dict[str, CmdMethod]] = {}
         if auto_register:

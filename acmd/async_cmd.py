@@ -2,15 +2,15 @@ import inspect
 from typing import Any, Callable, NoReturn, TextIO
 import readline
 
-from acmd.base_cmd import BaseCmd
+from acmd.cmd import Cmd
 from acmd.decorators import async_command
 from acmd.typing import CmdMethod
 
 __all__ = ("AsyncCmd",)
 
-class AsyncCmd(BaseCmd):
+class AsyncCmd(Cmd):
     """
-    Async+Sync implementation of `BaseCmd`
+    Async+Sync implementation of `Cmd`
     """
 
     __slots__ = (

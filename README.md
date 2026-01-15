@@ -1,13 +1,13 @@
 # acmd: Modern cmd with async support
 
 # Overview
-`acmd` provides a very lightweight repacking of Python's cmd.Cmd class for building command line interfaces. The package contains 2 classes, namely `BaseCmd` and an inherited `AsyncCmd`
+`acmd` provides a very lightweight repacking of Python's cmd.Cmd class for building command line interfaces. The package contains 2 classes, namely `Cmd` and an inherited `AsyncCmd`
 
-### BaseCmd
-`BaseCmd` provides virtually the same functionality and development interface as `cmd.Cmd`, with the primary difference being in the way methods are looked up at runtime.
+### Cmd
+`Cmd` provides virtually the same functionality and development interface as `cmd.Cmd`, with the primary difference being in the way methods are looked up at runtime.
 
 ### AsyncCmd
-An implementation of `BaseCmd` with added support for asynchronous methods 
+An implementation of `Cmd` with added support for asynchronous methods 
 
 # Usage
 ```python
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     asyncio.run(DemoCmd().acmdloop())
 ```
 
-Note: **BaseCmd** uses cmdloop() to launch itself, the coroutine `acmdloop` belongs only to **AsyncCmd** to provide support for asynchronous methods.
+Note: **Cmd** uses cmdloop() to launch itself, the coroutine `acmdloop` belongs only to **AsyncCmd** to provide support for asynchronous methods.
 
 Stacking of decorators are also supported, given that function metadata is preserved using `functools.wraps`
 
